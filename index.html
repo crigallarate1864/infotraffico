@@ -11,6 +11,7 @@
             --warning-orange: #ff8c00;
             --info-blue: #008cff;
             --text-gold: #ffd700;
+            --success-green: #00ff00;
         }
 
         body {
@@ -21,13 +22,12 @@
             padding: 20px;
             height: 100vh;
             display: grid;
-            grid-template-rows: 110px 1fr; /* Rimosso l'ultima riga del ticker */
+            grid-template-rows: 110px 1fr;
             gap: 20px;
             box-sizing: border-box;
             overflow: hidden;
         }
 
-        /* HEADER */
         header {
             display: flex;
             justify-content: space-between;
@@ -36,17 +36,17 @@
             padding-bottom: 10px;
         }
 
-        .main-title { font-size: 3.8rem; color: var(--text-gold); text-transform: uppercase; }
+        .main-title { font-size: 3.5rem; color: var(--text-gold); text-transform: uppercase; }
         .clock { font-size: 4.5rem; font-family: 'Courier New', monospace; font-weight: bold; }
 
-        /* AREA CENTRALE - CHIUSURE CRITICHE */
         .content-grid {
             display: grid;
-            grid-template-columns: 1.2fr 0.8fr; /* Leggermente più largo a sinistra per l'allerta A8 */
+            grid-template-columns: 1.1fr 0.9fr;
             gap: 20px;
             height: 100%;
         }
 
+        /* BLOCCO GALLARATE (FISSO) */
         .critical-alert {
             background: #2a0000;
             border: 10px solid var(--alert-red);
@@ -56,41 +56,50 @@
         }
 
         .alert-header {
-            font-size: 3.2rem;
+            font-size: 3rem;
             color: var(--alert-red);
             text-transform: uppercase;
             margin-bottom: 25px;
             display: block;
         }
 
-        .alert-body {
-            font-size: 3rem;
-            line-height: 1.2;
-        }
-
+        .alert-body { font-size: 2.8rem; line-height: 1.2; }
         .highlight-yellow { color: var(--text-gold); font-weight: bold; }
-        .highlight-white { color: white; background: #444; padding: 0 12px; }
 
-        /* AREA PEDEMONTANA / SECONDARIE */
-        .secondary-alerts {
+        /* BLOCCO AUTOMATICO (DINAMICO) */
+        .dynamic-alerts {
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 15px;
+            overflow-y: hidden;
         }
 
         .info-card {
             background: var(--panel);
             border-left: 20px solid var(--info-blue);
-            padding: 25px;
-            font-size: 2.2rem;
+            padding: 20px;
+            font-size: 2rem;
             border-radius: 5px;
+            animation: slideIn 0.5s ease-out;
         }
+
+        .info-card.urgent { border-left-color: var(--alert-red); background: #330000; }
+        .info-card.work { border-left-color: var(--warning-orange); }
+
+        .timestamp { font-size: 1.2rem; color: #888; display: block; margin-top: 10px; }
 
         @keyframes pulse-border {
             0% { border-color: var(--alert-red); }
             50% { border-color: #550000; }
             100% { border-color: var(--alert-red); }
         }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(50px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        #status-bar { font-size: 1rem; color: #444; text-align: right; }
     </style>
 </head>
 <body>
@@ -106,36 +115,84 @@
             <div class="alert-body">
                 Entrata chiusa dalle ore 21:00 del 23/02/2026 alle ore 05:00 del 24/06/2026 in direzione Milano per lavori. <br><br>
                 DEVIAZIONE CONSIGLIATA:<br>
-                ➡️ <span class="highlight-yellow" style="font-size: 4.5rem;">BUSTO ARSIZIO</span>
+                ➡️ <span class="highlight-yellow" style="font-size: 4.2rem;">BUSTO ARSIZIO</span>
             </div>
+            <div id="status-bar">Aggiornamento automatico attivo (ogni 5 min)</div>
         </div>
 
-        <div class="secondary-alerts">
-            <div class="info-card" style="border-left-color: #00ff00;">
-                <span style="color: #00ff00; font-weight: bold;">A36 PEDEMONTANA:</span><br>
-                Circolazione regolare su tutta la tratta.
-            </div>
-            
-            <div class="info-card">
-                <span style="font-weight: bold;">VARIE PROVINCIA VARESE:</span><br>
-                Ponte di Vedano: Traffico intenso direzione Varese.
-            </div>
-
-            <div class="info-card" style="border-left-color: var(--warning-orange);">
-                <span style="font-weight: bold;">A8 MILANO-LAGHI:</span><br>
-                Possibili code zona barriera Milano Nord.
+        <div class="dynamic-alerts" id="traffic-list">
+            <div class="info-card" style="border-left-color: var(--success-green);">
+                Caricamento info traffico in corso...
             </div>
         </div>
     </div>
 
     <script>
+        // 1. OROLOGIO
         function updateClock() {
             const now = new Date();
-            document.getElementById('clock').textContent = 
-                now.toLocaleTimeString('it-IT', { hour12: false });
+            document.getElementById('clock').textContent = now.toLocaleTimeString('it-IT', { hour12: false });
         }
         setInterval(updateClock, 1000);
         updateClock();
+
+        // 2. RECUPERO DATI AUTOMATICI (Filtrati per Varese/A8/A36)
+        const keywords = ["Varese", "A8", "Gallarate", "Busto Arsizio", "A36", "Pedemontana", "Lainate", "Castellanza", "Legnano", "Saronno", "Azzate", "Buguggiate", "Gazzada", "Sesto Calende", "Besnate", "Solbiate", "Cavaria", "Vergiate", "Malpensa"];
+
+        async function fetchTraffic() {
+            const listContainer = document.getElementById('traffic-list');
+            // URL RSS di Autostrade.it (tramite convertitore JSON gratuito)
+            const rssUrl = "https://www.autostrade.it/autostrade-gis/rss.do?tronco=A8"; 
+            const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
+
+            try {
+                const response = await fetch(apiUrl);
+                const data = await response.json();
+                
+                listContainer.innerHTML = ""; // Pulisce la lista
+
+                let found = 0;
+                data.items.forEach(item => {
+                    // Controlla se il testo contiene una delle parole chiave della provincia di Varese
+                    const content = (item.title + " " + item.description).toLowerCase();
+                    const isLocal = keywords.some(key => content.includes(key.toLowerCase()));
+
+                    if (isLocal && found < 4) { // Mostra al massimo 4 avvisi per non intasare lo schermo
+                        const card = document.createElement('div');
+                        card.className = 'info-card';
+                        
+                        // Se contiene "chiuso" o "incidente", colora di rosso
+                        if (content.includes("chiuso") || content.includes("incidente") || content.includes("bloccato")) {
+                            card.classList.add('urgent');
+                        }
+
+                        card.innerHTML = `
+                            <strong>${item.title.toUpperCase()}</strong><br>
+                            ${item.description}
+                            <span class="timestamp">Aggiornato: ${item.pubDate.split(' ')[1]}</span>
+                        `;
+                        listContainer.appendChild(card);
+                        found++;
+                    }
+                });
+
+                if (found === 0) {
+                    listContainer.innerHTML = `
+                        <div class="info-card" style="border-left-color: var(--success-green);">
+                            <strong style="color: var(--success-green);">A8 / A36 / VARESE:</strong><br>
+                            Nessuna criticità segnalata dai sensori autostradali al momento.
+                        </div>`;
+                }
+
+            } catch (error) {
+                console.error("Errore recupero dati:", error);
+                listContainer.innerHTML = '<div class="info-card urgent">Errore collegamento dati Autostrade.</div>';
+            }
+        }
+
+        // Avvia il recupero e impostalo ogni 5 minuti
+        fetchTraffic();
+        setInterval(fetchTraffic, 300000); 
     </script>
 </body>
 </html>
