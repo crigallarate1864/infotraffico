@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>S.O. VIABILITÀ - VARESE</title>
+    <title>Info traffico e chiusure stradali</title>
     <style>
         :root {
             --bg: #050505;
@@ -21,7 +21,7 @@
             padding: 20px;
             height: 100vh;
             display: grid;
-            grid-template-rows: 100px 1fr 80px;
+            grid-template-rows: 110px 1fr; /* Rimosso l'ultima riga del ticker */
             gap: 20px;
             box-sizing: border-box;
             overflow: hidden;
@@ -36,63 +36,54 @@
             padding-bottom: 10px;
         }
 
-        .main-title { font-size: 3.5rem; color: var(--text-gold); }
-        .clock { font-size: 4rem; font-family: 'Courier New', monospace; font-weight: bold; }
+        .main-title { font-size: 3.8rem; color: var(--text-gold); text-transform: uppercase; }
+        .clock { font-size: 4.5rem; font-family: 'Courier New', monospace; font-weight: bold; }
 
         /* AREA CENTRALE - CHIUSURE CRITICHE */
         .content-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1.2fr 0.8fr; /* Leggermente più largo a sinistra per l'allerta A8 */
             gap: 20px;
+            height: 100%;
         }
 
         .critical-alert {
             background: #2a0000;
-            border: 8px solid var(--alert-red);
-            padding: 30px;
+            border: 10px solid var(--alert-red);
+            padding: 35px;
             border-radius: 15px;
             animation: pulse-border 1.5s infinite;
         }
 
         .alert-header {
-            font-size: 3rem;
+            font-size: 3.2rem;
             color: var(--alert-red);
             text-transform: uppercase;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
             display: block;
         }
 
         .alert-body {
-            font-size: 2.8rem;
+            font-size: 3rem;
             line-height: 1.2;
         }
 
         .highlight-yellow { color: var(--text-gold); font-weight: bold; }
-        .highlight-white { color: white; background: #444; padding: 0 10px; }
+        .highlight-white { color: white; background: #444; padding: 0 12px; }
 
         /* AREA PEDEMONTANA / SECONDARIE */
         .secondary-alerts {
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 20px;
         }
 
         .info-card {
             background: var(--panel);
-            border-left: 15px solid var(--info-blue);
-            padding: 20px;
-            font-size: 2rem;
-        }
-
-        /* TICKER SCORREVOLE IN BASSO */
-        .footer-ticker {
-            background: var(--warning-orange);
-            color: black;
-            font-size: 2.5rem;
-            display: flex;
-            align-items: center;
-            font-weight: bold;
-            border-radius: 10px;
+            border-left: 20px solid var(--info-blue);
+            padding: 25px;
+            font-size: 2.2rem;
+            border-radius: 5px;
         }
 
         @keyframes pulse-border {
@@ -105,43 +96,36 @@
 <body>
 
     <header>
-        <div class="main-title">EMERGENZA VIABILITÀ A8 / A36</div>
-        <div class="clock" id="clock">10:45:00</div>
+        <div class="main-title">Info traffico e chiusure stradali</div>
+        <div class="clock" id="clock">00:00:00</div>
     </header>
 
     <div class="content-grid">
         <div class="critical-alert">
             <span class="alert-header">⚠️ A8 GALLARATE - ENTRATA CHIUSA</span>
             <div class="alert-body">
-                Fino al: <span class="highlight-yellow">24/06/2026 - ORE 05:00</span><br><br>
-                Direzione: <span class="highlight-white">MILANO</span> (Lavori)<br><br>
+                Entrata chiusa dalle ore 21:00 del 23/02/2026 alle ore 05:00 del 24/06/2026 in direzione Milano per lavori. <br><br>
                 DEVIAZIONE CONSIGLIATA:<br>
-                ➡️ <span class="highlight-yellow" style="font-size: 4rem;">BUSTO ARSIZIO</span>
+                ➡️ <span class="highlight-yellow" style="font-size: 4.5rem;">BUSTO ARSIZIO</span>
             </div>
         </div>
 
         <div class="secondary-alerts">
             <div class="info-card" style="border-left-color: #00ff00;">
-                <span style="color: #00ff00;">A36 PEDEMONTANA:</span><br>
+                <span style="color: #00ff00; font-weight: bold;">A36 PEDEMONTANA:</span><br>
                 Circolazione regolare su tutta la tratta.
             </div>
             
             <div class="info-card">
-                <span>VARIE PROVINCIA VARESE:</span><br>
+                <span style="font-weight: bold;">VARIE PROVINCIA VARESE:</span><br>
                 Ponte di Vedano: Traffico intenso direzione Varese.
             </div>
 
             <div class="info-card" style="border-left-color: var(--warning-orange);">
-                <span>A8 MILANO-LAGHI:</span><br>
+                <span style="font-weight: bold;">A8 MILANO-LAGHI:</span><br>
                 Possibili code zona barriera Milano Nord.
             </div>
         </div>
-    </div>
-
-    <div class="footer-ticker">
-        <marquee scrollamount="12">
-            *** COMUNICAZIONE PER GLI AUTISTI: VERIFICARE SEMPRE DISPONIBILITÀ PRONTO SOCCORSO GALLARATE/BUSTO PRIMA DI PARTIRE ***
-        </marquee>
     </div>
 
     <script>
