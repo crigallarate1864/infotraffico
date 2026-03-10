@@ -40,16 +40,17 @@
         .feed-container { padding: 0 30px; overflow-y: auto; flex-grow: 1; }
         .feed-item { padding: 25px 0; border-bottom: 1px solid var(--border); }
         .item-title { color: var(--warning); font-weight: 800; font-size: 1.5rem; margin-bottom: 12px; text-transform: uppercase; }
-        .item-desc { font-size: 1.4rem; line-height: 1.5; color: var(--text-bright); font-weight: 500; }
+        .item-desc { font-size: 1.45rem; line-height: 1.5; color: var(--text-bright); font-weight: 500; }
         
-        .status-msg { display: flex; justify-content: center; align-items: center; height: 100%; padding: 40px; color: var(--success); font-size: 2.2rem; font-weight: 800; text-align: center; }
+        .status-msg { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; padding: 40px; color: var(--success); font-size: 2.2rem; font-weight: 800; text-align: center; }
+        .debug-box { font-size: 0.9rem; color: #666; margin-top: 20px; font-weight: normal; font-family: monospace; text-align: left; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 4px; width: 100%; }
         .footer-logo { position: absolute; bottom: 25px; right: 25px; }
     </style>
 </head>
 <body>
 
     <header>
-        <h1 style="font-size: 1.4rem; color: var(--text-dim); margin:0;">SISTEMA VIABILITÀ</h1>
+        <h1 style="font-size: 1.4rem; color: var(--text-dim); margin:0;">SISTEMA MONITORAGGIO VIABILITÀ</h1>
         <div id="clock" class="clock">00:00:00</div>
         <div style="text-align: right;"><img src="logo.png" style="max-height: 75px;" onerror="this.style.display='none'"></div>
     </header>
@@ -66,11 +67,14 @@
 
         <div class="panel">
             <div class="panel-header header-bollettino">
-                <span>Area VA / Legnano / A8 / A36</span>
+                <span>Dati Provincia di Varese e Legnano</span>
                 <span id="sync-status" style="font-size: 0.8rem; font-weight: normal; opacity: 0.6;">Sincronizzazione...</span>
             </div>
             <div id="feed" class="feed-container">
-                <div id="loading-msg" class="status-msg">CONNESSIONE AL DATABASE...</div>
+                <div id="loading-area" class="status-msg">
+                    CARICAMENTO DATI IN CORSO...
+                    <div id="debug-info" class="debug-box">In attesa di connessione a Google Sheets...</div>
+                </div>
             </div>
         </div>
     </main>
@@ -78,7 +82,9 @@
     <div class="footer-logo"><img src="logo CCISS.png" style="max-height: 65px;" onerror="this.style.display='none'"></div>
 
     <script>
-        const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTQD7mYVjhrw9Ma3t_av071IGSDcaLoyojD55ZoOc-LuMIkT5OHWKwS93LQhVJCOGVHBJsG9Kyd2sXK/pub?output=csv';
+        // LINK DIRETTO EXPORT CSV - Più stabile del link di pubblicazione web
+        const SHEET_ID = '1vTQD7mYVjhrw9Ma3t_av071IGSDcaLoyojD55ZoOc-LuMIkT5OHWKwS93LQhVJCOGVHBJsG9Kyd2sXK';
+        const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=0`;
 
         function updateClock() {
             const now = new Date();
@@ -92,28 +98,38 @@
         async function fetchFromSheets() {
             const container = document.getElementById('feed');
             const syncStatus = document.getElementById('sync-status');
+            const debugInfo = document.getElementById('debug-info');
             
             try {
-                const response = await fetch(SHEET_CSV_URL + '&t=' + Date.now());
+                // Forziamo il bypass della cache con un timestamp
+                const response = await fetch(CSV_URL + '&t=' + Date.now());
+                if (!response.ok) throw new Error("Errore di connessione a Google (CORS o Rete)");
+                
                 const csvData = await response.text();
                 const lines = csvData.split(/\r?\n/);
                 
                 let foundItems = [];
+                let firstTitles = []; // Per il debug
 
                 for (let i = 0; i < lines.length; i++) {
                     if (!lines[i]) continue;
-                    // Parser per dividere le colonne A, B, C
+                    
+                    // Parser per CSV Google
                     const cols = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
                     
                     if (cols.length >= 3) {
-                        const title = cols[0].replace(/"/g, "").trim(); // Colonna A
-                        const desc = cols[2].replace(/"/g, "").trim();  // Colonna C
+                        const title = cols[0].replace(/"/g, "").trim(); 
+                        const desc = cols[2].replace(/"/g, "").trim();
                         const titleLower = title.toLowerCase();
 
-                        // FILTRO: Se una delle keywords è presente in Colonna A
-                        const match = keywords.some(k => titleLower.includes(k)) || /\bva\b/i.test(titleLower);
+                        // Debug: salviamo i primi 3 titoli che troviamo in assoluto
+                        if (firstTitles.length < 3 && i > 0) firstTitles.push(title);
 
-                        if (match) {
+                        // FILTRO AGGRESSIVO: Cerca keywords nella Colonna A
+                        const hasKeyword = keywords.some(k => titleLower.includes(k));
+                        const hasVA = /\bva\b/i.test(titleLower);
+
+                        if (hasKeyword || hasVA) {
                             foundItems.push({ title: title, desc: desc });
                         }
                     }
@@ -127,19 +143,27 @@
                         </div>
                     `).join('');
                 } else {
-                    container.innerHTML = '<div class="status-msg">Nessuna segnalazione rilevata per Varese, Legnano, A8 o A36</div>';
+                    container.innerHTML = `
+                        <div class="status-msg">
+                            Nessuna segnalazione trovata per Varese/Legnano
+                            <div class="debug-box">
+                                <b>DEBUG:</b> Il foglio è collegato.<br>
+                                Notizie totali lette: ${lines.length - 1}<br>
+                                Esempio titoli trovati (senza filtro):<br>
+                                ${firstTitles.map(t => "• " + t).join("<br>")}
+                            </div>
+                        </div>`;
                 }
-                syncStatus.textContent = "LIVE - " + new Date().toLocaleTimeString();
+                syncStatus.textContent = "AGGIORNATO: " + new Date().toLocaleTimeString();
 
             } catch (e) {
-                console.error(e);
-                syncStatus.textContent = "ERRORE CONNESSIONE";
-                container.innerHTML = '<div class="status-msg" style="color:var(--danger)">ERRORE DI RETE: Verificare pubblicazione CSV</div>';
+                syncStatus.textContent = "ERRORE!";
+                debugInfo.innerHTML = "ERRORE CRITICO: " + e.message + "<br><br>Assicurati che il file HTML sia aperto in un browser che non blocchi il caricamento (prova a trascinarlo in una finestra di navigazione in Incognito).";
             }
         }
 
         fetchFromSheets();
-        setInterval(fetchFromSheets, 60000); // Refresh ogni minuto
+        setInterval(fetchFromSheets, 60000); 
     </script>
 </body>
 </html>
