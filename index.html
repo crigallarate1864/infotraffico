@@ -185,7 +185,6 @@
     </main>
 
     <script>
-        // Orologio
         function updateClock() {
             const now = new Date();
             document.getElementById('clock').textContent = now.toLocaleTimeString('it-IT', { hour12: false });
@@ -193,14 +192,18 @@
         setInterval(updateClock, 1000);
         updateClock();
 
-        // Filtri Geografici per Provincia di Varese e Autostrade locali
-        const keywords = ["Varese", "A8", "Gallarate", "Busto", "Castellanza", "Legnano", "Saronno", "A36", "Pedemontana", "Malpensa", "Besnate", "Lainate", "Vergiate"];
+        // FILTRO POTENZIATO
+        // Aggiunte sigle (VA) e nodi autostradali specifici per massimizzare la cattura
+        const keywords = [
+            "Varese", "VA", "A8", "Milano-Laghi", "Gallarate", "Busto", 
+            "Castellanza", "Legnano", "Saronno", "A36", "Pedemontana", 
+            "Malpensa", "Besnate", "Lainate", "Vergiate", "Gazzada", 
+            "Azzate", "Buguggiate", "Cavaria", "Solbiate", "Olgiate", "Vedano"
+        ];
 
         async function fetchCCISS() {
             const feedContainer = document.getElementById('feed');
             const updateLabel = document.getElementById('last-update');
-            
-            // Usiamo rss2json per convertire l'RSS del CCISS in formato leggibile dal browser senza errori di protezione
             const rssUrl = "https://www.cciss.it/rss";
             const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
 
@@ -213,15 +216,23 @@
                     let count = 0;
 
                     data.items.forEach(item => {
-                        const content = (item.title + " " + item.description).toLowerCase();
+                        // Il filtro ora controlla title, description e anche le categorie/tags se presenti
+                        const title = item.title || "";
+                        const description = item.description || "";
+                        const fullText = (title + " " + description).toLowerCase();
                         
-                        // Applichiamo il filtro per la tua zona
-                        if (keywords.some(k => content.includes(k.toLowerCase())) && count < 10) {
+                        // Controllo di corrispondenza keywords
+                        const isRelevant = keywords.some(k => {
+                            const regex = new RegExp("\\b" + k + "\\b", "i"); // Cerca la parola esatta, non case-sensitive
+                            return regex.test(fullText);
+                        });
+
+                        if (isRelevant && count < 15) {
                             const div = document.createElement('div');
                             div.className = 'feed-item';
                             div.innerHTML = `
-                                <div class="item-title">${item.title.toUpperCase()}</div>
-                                <div class="item-desc">${item.description}</div>
+                                <div class="item-title">${title.toUpperCase()}</div>
+                                <div class="item-desc">${description}</div>
                             `;
                             feedContainer.appendChild(div);
                             count++;
@@ -229,7 +240,7 @@
                     });
 
                     if (count === 0) {
-                        feedContainer.innerHTML = '<div class="status-msg">Nessuna criticità segnalata dal CCISS per l\'area di Varese.</div>';
+                        feedContainer.innerHTML = '<div class="status-msg">Nessuna criticità rilevata per l\'area di Varese.</div>';
                     }
                     
                     const d = new Date();
@@ -240,9 +251,8 @@
             }
         }
 
-        // Caricamento iniziale e refresh ogni 5 minuti
         fetchCCISS();
-        setInterval(fetchCCISS, 300000);
+        setInterval(fetchCCISS, 300000); // 5 minuti
     </script>
 </body>
 </html>
