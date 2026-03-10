@@ -27,6 +27,7 @@
             grid-template-rows: 90px 1fr;
             gap: 25px;
             overflow: hidden;
+            position: relative;
         }
 
         /* HEADER */
@@ -61,6 +62,7 @@
             grid-template-columns: 480px 1fr;
             gap: 25px;
             height: 100%;
+            padding-bottom: 60px; /* Spazio per il logo in basso */
         }
 
         .panel {
@@ -82,7 +84,7 @@
             color: var(--text-dim);
         }
 
-        /* COLONNA FISSA (SINISTRA) */
+        /* COLONNA FISSA */
         .fixed-alert {
             padding: 30px;
             border-left: 8px solid var(--danger);
@@ -112,7 +114,7 @@
         .detour span { font-size: 0.9rem; color: var(--text-dim); text-transform: uppercase; }
         .detour div { font-size: 2.2rem; font-weight: 800; color: var(--warning); margin-top: 5px; }
 
-        /* COLONNA DINAMICA (DESTRA) */
+        /* COLONNA DINAMICA */
         .feed-container {
             padding: 0 25px;
             overflow-y: auto;
@@ -122,8 +124,6 @@
             padding: 20px 0;
             border-bottom: 1px solid var(--border);
         }
-
-        .feed-item:last-child { border-bottom: none; }
 
         .feed-item .item-title {
             color: var(--warning);
@@ -146,6 +146,19 @@
             color: var(--text-dim);
             font-style: italic;
         }
+
+        /* LOGO CCISS IN BASSO */
+        .footer-logo {
+            position: absolute;
+            bottom: 25px;
+            right: 25px;
+            opacity: 0.8;
+        }
+
+        .footer-logo img {
+            max-height: 50px;
+            width: auto;
+        }
     </style>
 </head>
 <body>
@@ -154,7 +167,7 @@
         <h1>Info traffico e chiusure stradali</h1>
         <div id="clock" class="clock">00:00:00</div>
         <div class="logo-box">
-            <img src="logo.png" alt="Logo" onerror="this.style.display='none'">
+            <img src="logo.png" alt="Logo Sede" onerror="this.style.display='none'">
         </div>
     </header>
 
@@ -175,14 +188,18 @@
 
         <div class="panel">
             <div class="panel-header" style="display: flex; justify-content: space-between;">
-                <span>Bollettino CCISS - Provincia di Varese</span>
-                <span id="last-update" style="font-weight: normal; text-transform: none;">Aggiornamento in corso...</span>
+                <span>Bollettino CCISS (Ultime 3 Ore)</span>
+                <span id="last-update" style="font-weight: normal; text-transform: none;">Aggiornamento...</span>
             </div>
             <div id="feed" class="feed-container">
-                <div class="status-msg">In attesa di dati dal CCISS...</div>
+                <div class="status-msg">Ricerca segnalazioni CCISS...</div>
             </div>
         </div>
     </main>
+
+    <div class="footer-logo">
+        <img src="logo CCISS.png" alt="Logo CCISS" onerror="this.style.display='none'">
+    </div>
 
     <script>
         function updateClock() {
@@ -192,20 +209,14 @@
         setInterval(updateClock, 1000);
         updateClock();
 
-        // FILTRO POTENZIATO
-        // Aggiunte sigle (VA) e nodi autostradali specifici per massimizzare la cattura
-        const keywords = [
-            "Varese", "VA", "A8", "Milano-Laghi", "Gallarate", "Busto", 
-            "Castellanza", "Legnano", "Saronno", "A36", "Pedemontana", 
-            "Malpensa", "Besnate", "Lainate", "Vergiate", "Gazzada", 
-            "Azzate", "Buguggiate", "Cavaria", "Solbiate", "Olgiate", "Vedano"
-        ];
+        // FILTRO OTTIMIZZATO
+        const keywords = ["Varese", "VA", "A8", "Gallarate", "Busto", "Castellanza", "Saronno", "Pedemontana", "A36", "Malpensa", "Besnate", "Lainate", "Vergiate", "Gazzada", "Buguggiate"];
 
         async function fetchCCISS() {
             const feedContainer = document.getElementById('feed');
             const updateLabel = document.getElementById('last-update');
             const rssUrl = "https://www.cciss.it/rss";
-            const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
+            const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&t=${Date.now()}`;
 
             try {
                 const response = await fetch(apiUrl);
@@ -214,25 +225,25 @@
                 if (data.status === 'ok') {
                     feedContainer.innerHTML = "";
                     let count = 0;
+                    const treOreInMs = 3 * 60 * 60 * 1000;
+                    const adesso = Date.now();
 
                     data.items.forEach(item => {
-                        // Il filtro ora controlla title, description e anche le categorie/tags se presenti
-                        const title = item.title || "";
-                        const description = item.description || "";
-                        const fullText = (title + " " + description).toLowerCase();
+                        const content = (item.title + " " + item.description).toLowerCase();
+                        const dataPub = new Date(item.pubDate.replace(/-/g, "/")).getTime();
                         
-                        // Controllo di corrispondenza keywords
-                        const isRelevant = keywords.some(k => {
-                            const regex = new RegExp("\\b" + k + "\\b", "i"); // Cerca la parola esatta, non case-sensitive
-                            return regex.test(fullText);
-                        });
+                        // Controllo 1: Il contenuto riguarda la nostra zona?
+                        const isLocal = keywords.some(k => content.includes(k.toLowerCase()));
+                        
+                        // Controllo 2: La segnalazione è delle ultime 3 ore?
+                        const isRecent = (adesso - dataPub) < treOreInMs;
 
-                        if (isRelevant && count < 15) {
+                        if (isLocal && isRecent) {
                             const div = document.createElement('div');
                             div.className = 'feed-item';
                             div.innerHTML = `
-                                <div class="item-title">${title.toUpperCase()}</div>
-                                <div class="item-desc">${description}</div>
+                                <div class="item-title">${item.title.toUpperCase()}</div>
+                                <div class="item-desc">${item.description}</div>
                             `;
                             feedContainer.appendChild(div);
                             count++;
@@ -240,14 +251,14 @@
                     });
 
                     if (count === 0) {
-                        feedContainer.innerHTML = '<div class="status-msg">Nessuna criticità rilevata per l\'area di Varese.</div>';
+                        feedContainer.innerHTML = '<div class="status-msg">Nessuna segnalazione rilevata nelle ultime 3 ore per la zona di Varese.</div>';
                     }
                     
                     const d = new Date();
-                    updateLabel.textContent = "Ultimo agg: " + d.getHours() + ":" + d.getMinutes().toString().padStart(2, '0');
+                    updateLabel.textContent = "Aggiornato: " + d.getHours() + ":" + d.getMinutes().toString().padStart(2, '0');
                 }
             } catch (error) {
-                updateLabel.textContent = "Errore di connessione";
+                updateLabel.textContent = "Errore connessione";
             }
         }
 
