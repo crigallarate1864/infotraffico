@@ -5,59 +5,40 @@
     <title>SISTEMA MONITORAGGIO VIABILITÀ</title>
     <style>
         :root {
-            /* TEMA DARK (18:00 - 08:00) */
             --bg-main: #0a0f18; --bg-card: #161e2e; --border: #2d3748;
             --text-bright: #f8fafc; --text-dim: #94a3b8;
             --danger: #e11d48; --warning: #fbbf24; --success: #4ade80;
             --header-dark: #1e293b; --header-red: #450a0a;
         }
-
         body.light-mode {
-            /* TEMA LIGHT (08:00 - 18:00) */
             --bg-main: #f1f5f9; --bg-card: #ffffff; --border: #cbd5e1;
             --text-bright: #0f172a; --text-dim: #475569;
             --header-dark: #e2e8f0; --header-red: #fee2e2;
         }
-
         * { box-sizing: border-box; }
         body {
             background-color: var(--bg-main); color: var(--text-bright);
             font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; padding: 25px;
             height: 100vh; display: grid; grid-template-rows: 90px 1fr; gap: 25px; overflow: hidden;
-            transition: background 0.4s;
         }
-
         header { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; border-bottom: 3px solid var(--border); padding-bottom: 10px; }
         .clock { font-size: 3.8rem; font-weight: 700; font-family: monospace; }
-        
         main { display: grid; grid-template-columns: 480px 1fr; gap: 25px; height: 100%; padding-bottom: 80px; }
         .panel { background: var(--bg-card); border: 2px solid var(--border); border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; }
-        
-        .panel-header {
-            padding: 20px 25px; font-size: 1.2rem; font-weight: 900; text-transform: uppercase;
-            letter-spacing: 2px; display: flex; justify-content: space-between; align-items: center;
-        }
+        .panel-header { padding: 20px 25px; font-size: 1.2rem; font-weight: 900; text-transform: uppercase; display: flex; justify-content: space-between; align-items: center; }
         .header-permanente { background: var(--header-red); color: var(--danger); border-bottom: 4px solid var(--danger); }
         .header-bollettino { background: var(--header-dark); color: var(--warning); border-bottom: 4px solid var(--warning); }
-
         .fixed-alert { padding: 35px; border-left: 12px solid var(--danger); }
         .fixed-alert .title { color: var(--danger); font-size: 1.7rem; font-weight: 800; margin-bottom: 25px; }
         .fixed-alert .body-text { font-size: 1.4rem; line-height: 1.5; font-weight: bold; }
         .highlight { color: var(--warning); font-weight: 900; }
-
         .detour { margin-top: auto; background: rgba(0,0,0,0.05); padding: 30px; border-top: 2px solid var(--border); }
-        .detour span { font-size: 1rem; color: var(--text-dim); text-transform: uppercase; }
         .detour div { font-size: 2.8rem; font-weight: 900; color: var(--warning); margin-top: 10px; }
-
         .feed-container { padding: 0 30px; overflow-y: auto; flex-grow: 1; }
         .feed-item { padding: 25px 0; border-bottom: 1px solid var(--border); }
         .item-title { color: var(--warning); font-weight: 800; font-size: 1.5rem; margin-bottom: 12px; text-transform: uppercase; }
         .item-desc { font-size: 1.4rem; line-height: 1.5; color: var(--text-bright); font-weight: 500; }
-
-        .status-msg { display: flex; justify-content: center; align-items: center; height: 100%; padding: 40px; color: var(--success); font-size: 2.5rem; font-weight: 800; text-align: center; }
-
-        .footer-logo { position: absolute; bottom: 25px; right: 25px; }
-        .footer-logo img { max-height: 65px; width: auto; }
+        .status-msg { display: flex; justify-content: center; align-items: center; height: 100%; padding: 40px; color: var(--success); font-size: 2.2rem; font-weight: 800; text-align: center; }
     </style>
 </head>
 <body>
@@ -73,14 +54,9 @@
             <div class="panel-header header-permanente">Segnalazione Permanente</div>
             <div class="fixed-alert">
                 <div class="title">A8 GALLARATE - ENTRATA CHIUSA</div>
-                <div class="body-text">
-                    Entrata chiusa dalle ore <span class="highlight">21:00</span> del <span class="highlight">23/02/2026</span> alle ore <span class="highlight">05:00</span> del <span class="highlight">24/06/2026</span> in direzione Milano per lavori.
-                </div>
+                <div class="body-text">Entrata chiusa dalle ore <span class="highlight">21:00</span> del <span class="highlight">23/02/2026</span> alle ore <span class="highlight">05:00</span> del <span class="highlight">24/06/2026</span> in direzione Milano.</div>
             </div>
-            <div class="detour">
-                <span>Entrata consigliata verso Milano</span>
-                <div>Busto Arsizio</div>
-            </div>
+            <div class="detour"><span>Consigliata verso Milano</span><div>Busto Arsizio</div></div>
         </div>
 
         <div class="panel">
@@ -89,62 +65,66 @@
                 <span id="sync-status" style="font-size: 0.8rem; font-weight: normal; opacity: 0.6;">Sincronizzazione...</span>
             </div>
             <div id="feed" class="feed-container">
-                <div class="status-msg" id="status-text">CONNESSIONE AI DATI...</div>
+                <div class="status-msg">ANALISI DATI CCISS...</div>
             </div>
         </div>
     </main>
 
-    <div class="footer-logo">
-        <img src="logo CCISS.png" onerror="this.style.display='none'">
-    </div>
-
     <script>
-        // IL TUO LINK CSV + PONTE ANTI-BLOCCO
-        const BASE_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTQD7mYVjhrw9Ma3t_av071IGSDcaLoyojD55ZoOc-LuMIkT5OHWKwS93LQhVJCOGVHBJsG9Kyd2sXK/pub?output=csv';
-        const CORS_PROXY = "https://corsproxy.io/?";
+        const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTQD7mYVjhrw9Ma3t_av071IGSDcaLoyojD55ZoOc-LuMIkT5OHWKwS93LQhVJCOGVHBJsG9Kyd2sXK/pub?output=csv';
+        const PROXY = "https://corsproxy.io/?";
 
         function updateClock() {
             const now = new Date();
             document.getElementById('clock').textContent = now.toLocaleTimeString('it-IT', { hour12: false });
-            // Tema Light 08:00 - 18:00
             document.body.classList.toggle('light-mode', now.getHours() >= 8 && now.getHours() < 18);
         }
         setInterval(updateClock, 1000); updateClock();
 
         const keywords = ["varese", "legnano", "a8", "a36", "gallarate", "busto"];
 
+        // Funzione per dividere il CSV rispettando le virgolette e i ritorni a capo interni
+        function parseCSV(text) {
+            const rows = [];
+            let row = [];
+            let col = "";
+            let inQuotes = false;
+            for (let i = 0; i < text.length; i++) {
+                let char = text[i];
+                let nextChar = text[i+1];
+                if (char === '"' && inQuotes && nextChar === '"') { col += '"'; i++; }
+                else if (char === '"') { inQuotes = !inQuotes; }
+                else if (char === ',' && !inQuotes) { row.push(col); col = ""; }
+                else if (char === '\n' && !inQuotes) { row.push(col); rows.push(row); row = []; col = ""; }
+                else if (char === '\r' && !inQuotes) { }
+                else { col += char; }
+            }
+            if (row.length > 0 || col !== "") { row.push(col); rows.push(row); }
+            return rows;
+        }
+
         async function fetchFromSheets() {
-            const feedContainer = document.getElementById('feed');
+            const container = document.getElementById('feed');
             const syncStatus = document.getElementById('sync-status');
-            const statusText = document.getElementById('status-text');
             
             try {
-                // Combiniamo il proxy con l'URL di Google per saltare il blocco CORS
-                const response = await fetch(CORS_PROXY + encodeURIComponent(BASE_CSV_URL + '&t=' + Date.now()));
-                
-                if (!response.ok) throw new Error("Errore di rete");
-                
+                const response = await fetch(PROXY + encodeURIComponent(CSV_URL + '&t=' + Date.now()));
                 const csvData = await response.text();
-                const lines = csvData.split(/\r?\n/);
+                
+                // Usiamo il nuovo parser robusto
+                const rows = parseCSV(csvData);
                 let contentHTML = "";
                 let count = 0;
 
-                for (let i = 0; i < lines.length; i++) {
-                    const line = lines[i].trim();
-                    if (!line) continue;
-
-                    // Parser CSV (A=0, B=1, C=2)
-                    const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                    
+                rows.forEach(cols => {
                     if (cols.length >= 3) {
-                        const title = cols[0].replace(/"/g, "").trim();
-                        const desc = cols[2].replace(/"/g, "").trim();
+                        const title = cols[0].trim();
+                        const desc = cols[2].trim();
                         const full = (title + " " + desc).toLowerCase();
 
-                        // Filtro: Se trova keyword in titolo o desc, o VA isolato
-                        const isMatch = keywords.some(k => full.includes(k)) || /\bva\b/i.test(full);
+                        const match = keywords.some(k => full.includes(k)) || /\bva\b/i.test(full);
 
-                        if (isMatch) {
+                        if (match) {
                             contentHTML += `
                                 <div class="feed-item">
                                     <div class="item-title">${title.toUpperCase()}</div>
@@ -153,25 +133,18 @@
                             count++;
                         }
                     }
-                }
+                });
 
-                if (count > 0) {
-                    feedContainer.innerHTML = contentHTML;
-                } else {
-                    feedContainer.innerHTML = '<div class="status-msg">Nessuna segnalazione rilevata per Varese, Legnano, A8 o A36</div>';
-                }
-                syncStatus.textContent = "LIVE - " + new Date().toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'});
+                container.innerHTML = count > 0 ? contentHTML : '<div class="status-msg">Nessuna segnalazione per Varese, Legnano, A8 e A36</div>';
+                syncStatus.textContent = "LIVE - " + new Date().toLocaleTimeString();
 
             } catch (e) {
-                console.error(e);
-                syncStatus.textContent = "CONNESSIONE FALLITA";
-                if (statusText) statusText.innerHTML = "ERRORE DI CARICAMENTO<br><small style='color:red; font-size:1rem;'>Verificare connessione internet</small>";
+                syncStatus.textContent = "ERRORE DI RETE";
             }
         }
 
-        // Avvio e refresh ogni 2 minuti
         fetchFromSheets();
-        setInterval(fetchFromSheets, 120000);
+        setInterval(fetchFromSheets, 60000);
     </script>
 </body>
 </html>
