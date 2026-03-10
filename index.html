@@ -4,131 +4,171 @@
     <meta charset="UTF-8">
     <title>Info traffico e chiusure stradali</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto+Condensed:wght@700&display=swap');
+
         :root {
-            --bg: #050505;
-            --panel: #151515;
-            --alert-red: #ff0000;
-            --warning-orange: #ff8c00;
-            --info-blue: #008cff;
-            --text-gold: #ffd700;
-            --success-green: #00ff00;
+            --bg-dark: #020205;
+            --panel-bg: rgba(20, 20, 30, 0.8);
+            --danger-neon: #ff003c;
+            --warning-gold: #f2ff00;
+            --info-cyan: #00f2ff;
+            --border-glow: 0 0 15px rgba(0, 242, 255, 0.2);
         }
 
         body {
-            background-color: var(--bg);
-            color: white;
-            font-family: 'Arial Black', sans-serif;
+            background-color: var(--bg-dark);
+            background-image: radial-gradient(circle at center, #0a0a1a 0%, #020205 100%);
+            color: #e0e0e0;
+            font-family: 'Roboto Condensed', sans-serif;
             margin: 0;
-            padding: 20px;
+            padding: 25px;
             height: 100vh;
             display: grid;
-            grid-template-rows: 110px 1fr;
-            gap: 20px;
+            grid-template-rows: 100px 1fr;
+            gap: 25px;
             box-sizing: border-box;
             overflow: hidden;
         }
 
+        /* HEADER STILE MILITARE */
         header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 5px solid var(--text-gold);
-            padding-bottom: 10px;
+            border-bottom: 4px solid var(--info-cyan);
+            padding: 0 40px;
+            background: var(--panel-bg);
+            box-shadow: var(--border-glow);
         }
 
-        .main-title { font-size: 3.5rem; color: var(--text-gold); text-transform: uppercase; }
-        .clock { font-size: 4.5rem; font-family: 'Courier New', monospace; font-weight: bold; }
+        .main-title { 
+            font-family: 'Orbitron', sans-serif;
+            font-size: 3.2rem; 
+            color: var(--info-cyan); 
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            text-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
+        }
 
+        .clock { 
+            font-family: 'Orbitron', sans-serif;
+            font-size: 4.5rem; 
+            color: var(--warning-gold);
+            text-shadow: 0 0 10px rgba(242, 255, 0, 0.3);
+        }
+
+        /* GRIGLIA PRINCIPALE */
         .content-grid {
             display: grid;
-            grid-template-columns: 1.1fr 0.9fr;
-            gap: 20px;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
             height: 100%;
         }
 
-        /* BLOCCO GALLARATE (FISSO) */
-        .critical-alert {
-            background: #2a0000;
-            border: 10px solid var(--alert-red);
-            padding: 35px;
-            border-radius: 15px;
-            animation: pulse-border 1.5s infinite;
+        /* PANEL STYLE */
+        .panel {
+            background: var(--panel-bg);
+            border: 2px solid rgba(0, 242, 255, 0.3);
+            border-radius: 10px;
+            padding: 30px;
+            position: relative;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
         }
 
-        .alert-header {
-            font-size: 3rem;
-            color: var(--alert-red);
-            text-transform: uppercase;
-            margin-bottom: 25px;
-            display: block;
+        /* BLOCCO GALLARATE (URGENTE) */
+        .critical-panel {
+            border: 4px solid var(--danger-neon);
+            box-shadow: 0 0 30px rgba(255, 0, 60, 0.2);
+            background: linear-gradient(135deg, #1a0005 0%, #050505 100%);
         }
 
-        .alert-body { font-size: 2.8rem; line-height: 1.2; }
-        .highlight-yellow { color: var(--text-gold); font-weight: bold; }
+        .alert-label {
+            position: absolute;
+            top: -20px;
+            left: 30px;
+            background: var(--danger-neon);
+            color: white;
+            padding: 5px 20px;
+            font-size: 1.5rem;
+            font-family: 'Orbitron', sans-serif;
+            border-radius: 5px;
+        }
 
-        /* BLOCCO AUTOMATICO (DINAMICO) */
-        .dynamic-alerts {
+        .alert-content {
+            font-size: 2.8rem;
+            line-height: 1.3;
+            margin-top: 20px;
+        }
+
+        .highlight { color: var(--warning-gold); font-weight: bold; }
+        .destination { 
+            font-size: 5rem; 
+            color: var(--warning-gold); 
+            display: block; 
+            text-align: center;
+            margin-top: 30px;
+            text-shadow: 0 0 20px rgba(242, 255, 0, 0.4);
+        }
+
+        /* LISTA DINAMICA */
+        .dynamic-list {
             display: flex;
             flex-direction: column;
-            gap: 15px;
-            overflow-y: hidden;
+            gap: 20px;
+            overflow-y: auto;
         }
 
-        .info-card {
-            background: var(--panel);
-            border-left: 20px solid var(--info-blue);
+        .event-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-left: 15px solid var(--info-cyan);
             padding: 20px;
-            font-size: 2rem;
-            border-radius: 5px;
-            animation: slideIn 0.5s ease-out;
+            font-size: 1.8rem;
+            transition: all 0.3s;
         }
 
-        .info-card.urgent { border-left-color: var(--alert-red); background: #330000; }
-        .info-card.work { border-left-color: var(--warning-orange); }
-
-        .timestamp { font-size: 1.2rem; color: #888; display: block; margin-top: 10px; }
-
-        @keyframes pulse-border {
-            0% { border-color: var(--alert-red); }
-            50% { border-color: #550000; }
-            100% { border-color: var(--alert-red); }
+        .event-card.emergency {
+            border-left-color: var(--danger-neon);
+            background: rgba(255, 0, 60, 0.1);
         }
 
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateX(50px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
+        .event-card strong { color: var(--info-cyan); display: block; margin-bottom: 10px; font-size: 2rem; }
 
-        #status-bar { font-size: 1rem; color: #444; text-align: right; }
+        /* SCROLLBAR CUSTOM */
+        ::-webkit-scrollbar { width: 10px; }
+        ::-webkit-scrollbar-track { background: #050505; }
+        ::-webkit-scrollbar-thumb { background: var(--info-cyan); border-radius: 10px; }
     </style>
 </head>
 <body>
 
     <header>
         <div class="main-title">Info traffico e chiusure stradali</div>
-        <div class="clock" id="clock">00:00:00</div>
+        <div id="clock" class="clock">00:00:00</div>
     </header>
 
     <div class="content-grid">
-        <div class="critical-alert">
-            <span class="alert-header">⚠️ A8 GALLARATE - ENTRATA CHIUSA</span>
-            <div class="alert-body">
-                Entrata chiusa dalle ore 21:00 del 23/02/2026 alle ore 05:00 del 24/06/2026 in direzione Milano per lavori. <br><br>
-                DEVIAZIONE CONSIGLIATA:<br>
-                ➡️ <span class="highlight-yellow" style="font-size: 4.2rem;">BUSTO ARSIZIO</span>
+        <div class="panel critical-panel">
+            <div class="alert-label">ALLERTA CANTIERE A8</div>
+            <div class="alert-content">
+                <span style="color:var(--danger-neon)">⚠️ A8 GALLARATE - ENTRATA CHIUSA</span><br><br>
+                Chiusura: <span class="highlight">23/02/2026 (21:00)</span><br>
+                Fine prevista: <span class="highlight">24/06/2026 (05:00)</span><br><br>
+                Direzione: MILANO (Lavori)<br>
+                <small style="font-size: 1.5rem; opacity: 0.7;">Entrata consigliata:</small>
+                <span class="destination">BUSTO ARSIZIO</span>
             </div>
-            <div id="status-bar">Aggiornamento automatico attivo (ogni 5 min)</div>
         </div>
 
-        <div class="dynamic-alerts" id="traffic-list">
-            <div class="info-card" style="border-left-color: var(--success-green);">
-                Caricamento info traffico in corso...
+        <div class="panel">
+            <div class="alert-label" style="background: var(--info-cyan); color: black;">LIVE FEED PROV. VARESE</div>
+            <div id="traffic-feed" class="dynamic-list">
+                <div class="event-card">Ricerca eventi in corso sulla rete A8 / A36...</div>
             </div>
         </div>
     </div>
 
     <script>
-        // 1. OROLOGIO
+        // OROLOGIO
         function updateClock() {
             const now = new Date();
             document.getElementById('clock').textContent = now.toLocaleTimeString('it-IT', { hour12: false });
@@ -136,63 +176,56 @@
         setInterval(updateClock, 1000);
         updateClock();
 
-        // 2. RECUPERO DATI AUTOMATICI (Filtrati per Varese/A8/A36)
-        const keywords = ["Varese", "A8", "Gallarate", "Busto Arsizio", "A36", "Pedemontana", "Lainate", "Castellanza", "Legnano", "Saronno", "Azzate", "Buguggiate", "Gazzada", "Sesto Calende", "Besnate", "Solbiate", "Cavaria", "Vergiate", "Malpensa"];
+        // FILTRI E RECUPERO DATI
+        const keywords = ["Varese", "A8", "Gallarate", "Busto", "Castellanza", "Legnano", "Saronno", "A36", "Pedemontana", "Malpensa", "Gazzada", "Besnate", "Vergiate"];
 
-        async function fetchTraffic() {
-            const listContainer = document.getElementById('traffic-list');
-            // URL RSS di Autostrade.it (tramite convertitore JSON gratuito)
-            const rssUrl = "https://www.autostrade.it/autostrade-gis/rss.do?tronco=A8"; 
-            const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
+        async function getTraffic() {
+            const feedContainer = document.getElementById('traffic-feed');
+            
+            // Usiamo il feed RSS ufficiale convertito in JSON tramite proxy per evitare errori di connessione
+            const rssUrl = "https://www.autostrade.it/autostrade-gis/rss.do?tronco=A8";
+            const proxy = "https://api.allorigins.win/get?url=" + encodeURIComponent(rssUrl);
 
             try {
-                const response = await fetch(apiUrl);
-                const data = await response.json();
+                const response = await fetch(proxy);
+                const json = await response.json();
                 
-                listContainer.innerHTML = ""; // Pulisce la lista
+                // Parsing del file XML ricevuto dal proxy
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(json.contents, "text/xml");
+                const items = xmlDoc.getElementsByTagName("item");
 
-                let found = 0;
-                data.items.forEach(item => {
-                    // Controlla se il testo contiene una delle parole chiave della provincia di Varese
-                    const content = (item.title + " " + item.description).toLowerCase();
-                    const isLocal = keywords.some(key => content.includes(key.toLowerCase()));
+                feedContainer.innerHTML = "";
+                let count = 0;
 
-                    if (isLocal && found < 4) { // Mostra al massimo 4 avvisi per non intasare lo schermo
-                        const card = document.createElement('div');
-                        card.className = 'info-card';
+                for (let i = 0; i < items.length; i++) {
+                    const title = items[i].getElementsByTagName("title")[0].textContent;
+                    const desc = items[i].getElementsByTagName("description")[0].textContent;
+                    const fullText = (title + " " + desc).toLowerCase();
+
+                    // Filtra solo per zona Varese/A8
+                    if (keywords.some(k => fullText.includes(k.toLowerCase())) && count < 5) {
+                        const isEmerg = fullText.includes("chiuso") || fullText.includes("incidente") || fullText.includes("coda");
                         
-                        // Se contiene "chiuso" o "incidente", colora di rosso
-                        if (content.includes("chiuso") || content.includes("incidente") || content.includes("bloccato")) {
-                            card.classList.add('urgent');
-                        }
-
-                        card.innerHTML = `
-                            <strong>${item.title.toUpperCase()}</strong><br>
-                            ${item.description}
-                            <span class="timestamp">Aggiornato: ${item.pubDate.split(' ')[1]}</span>
-                        `;
-                        listContainer.appendChild(card);
-                        found++;
+                        const div = document.createElement('div');
+                        div.className = `event-card ${isEmerg ? 'emergency' : ''}`;
+                        div.innerHTML = `<strong>${title.toUpperCase()}</strong>${desc}`;
+                        feedContainer.appendChild(div);
+                        count++;
                     }
-                });
-
-                if (found === 0) {
-                    listContainer.innerHTML = `
-                        <div class="info-card" style="border-left-color: var(--success-green);">
-                            <strong style="color: var(--success-green);">A8 / A36 / VARESE:</strong><br>
-                            Nessuna criticità segnalata dai sensori autostradali al momento.
-                        </div>`;
                 }
 
-            } catch (error) {
-                console.error("Errore recupero dati:", error);
-                listContainer.innerHTML = '<div class="info-card urgent">Errore collegamento dati Autostrade.</div>';
+                if (count === 0) {
+                    feedContainer.innerHTML = '<div class="event-card" style="border-left-color: #00ff00;"><strong>SITUAZIONE REGOLARE</strong>Nessuna criticità rilevata su A8 e Pedemontana nell\'area di Varese.</div>';
+                }
+
+            } catch (e) {
+                feedContainer.innerHTML = '<div class="event-card emergency"><strong>ERRORE CONNESSIONE</strong>Impossibile recuperare i dati in tempo reale. Verificare connessione internet.</div>';
             }
         }
 
-        // Avvia il recupero e impostalo ogni 5 minuti
-        fetchTraffic();
-        setInterval(fetchTraffic, 300000); 
+        getTraffic();
+        setInterval(getTraffic, 300000); // Aggiorna ogni 5 minuti
     </script>
 </body>
 </html>
