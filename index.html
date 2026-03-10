@@ -5,15 +5,20 @@
     <title>SISTEMA MONITORAGGIO VIABILITÀ</title>
     <style>
         :root {
+            /* TEMA DARK (NOTTE) */
             --bg-main: #0a0f18; --bg-card: #161e2e; --border: #2d3748;
             --text-bright: #f8fafc; --text-dim: #94a3b8;
             --danger: #e11d48; --warning: #fbbf24; --success: #4ade80;
             --header-dark: #1e293b; --header-red: #450a0a;
         }
         body.light-mode {
-            --bg-main: #f1f5f9; --bg-card: #ffffff; --border: #cbd5e1;
+            /* TEMA LIGHT (GIORNO) - OTTIMIZZATO */
+            --bg-main: #f8fafc; --bg-card: #ffffff; --border: #cbd5e1;
             --text-bright: #0f172a; --text-dim: #475569;
             --header-dark: #e2e8f0; --header-red: #fee2e2;
+            /* Sostituzione giallo con Ambra Scuro per leggibilità */
+            --warning: #b45309; 
+            --success: #15803d;
         }
         * { box-sizing: border-box; }
         body {
@@ -46,13 +51,13 @@
         .header-center .separator { font-size: 2.5rem; color: var(--border); font-weight: 300; }
         .header-center img { max-height: 75px; width: auto; }
 
-        /* DATA E OROLOGIO A DESTRA */
+        /* DATA E OROLOGIO */
         .datetime-container {
             justify-self: end;
             text-align: right;
             display: flex;
             flex-direction: column;
-            min-width: 300px; /* Assicura spazio per la larghezza data */
+            min-width: 320px;
         }
         #date-box {
             font-size: 1.2rem;
@@ -85,6 +90,7 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
         .panel-header {
             padding: 15px 25px;
@@ -98,28 +104,29 @@
         .header-permanente { background: var(--header-red); color: var(--danger); border-bottom: 4px solid var(--danger); }
         .header-bollettino { background: var(--header-dark); color: var(--warning); border-bottom: 4px solid var(--warning); }
 
-        /* SINISTRA: FISSO ORDINATO */
+        /* SINISTRA: FISSO */
         .fixed-content { padding: 30px; flex-grow: 1; }
         .alert-box { border-left: 10px solid var(--danger); padding-left: 20px; margin-bottom: 40px; }
         .alert-box .title { color: var(--danger); font-size: 1.8rem; font-weight: 900; margin-bottom: 15px; }
         .alert-box .body-text { font-size: 1.4rem; line-height: 1.4; font-weight: 600; }
         .highlight { color: var(--warning); }
 
-        .detour-section { background: rgba(0, 0, 0, 0.2); padding: 25px; border-radius: 8px; border: 1px solid var(--border); }
+        .detour-section { background: rgba(0, 0, 0, 0.05); padding: 25px; border-radius: 8px; border: 1px solid var(--border); }
         .detour-label { font-size: 1rem; text-transform: uppercase; color: var(--text-dim); font-weight: 700; margin-bottom: 5px; }
         .detour-value { font-size: 2.6rem; font-weight: 900; color: var(--warning); line-height: 1; }
 
-        /* DESTRA: FEED CON RIQUADRI SOFT */
+        /* DESTRA: FEED */
         .feed-container { padding: 20px 25px; overflow-y: auto; }
         .feed-item { 
-            background: rgba(255, 255, 255, 0.03); 
+            background: rgba(0, 0, 0, 0.02); 
             border: 1px solid var(--border);
             border-radius: 10px;
             padding: 20px;
             margin-bottom: 20px;
-            transition: transform 0.2s;
         }
-        .item-title { color: var(--warning); font-weight: 800; font-size: 1.5rem; margin-bottom: 10px; text-transform: uppercase; border-bottom: 1px solid rgba(251, 191, 36, 0.2); padding-bottom: 5px; }
+        body.light-mode .feed-item { background: #fcfcfc; }
+
+        .item-title { color: var(--warning); font-weight: 800; font-size: 1.5rem; margin-bottom: 10px; text-transform: uppercase; border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 5px; }
         .item-desc { font-size: 1.4rem; line-height: 1.5; color: var(--text-bright); }
 
         .status-msg { display: flex; justify-content: center; align-items: center; height: 100%; font-size: 2.2rem; font-weight: 800; color: var(--success); text-align: center; }
@@ -131,13 +138,14 @@
 <body>
 
     <header>
-        <div></div> <div class="header-center">
+        <div></div>
+        <div class="header-center">
             <h1>Info Viabilità</h1>
             <span class="separator">|</span>
             <img src="logo.png" alt="Logo Sede" onerror="this.style.visibility='hidden'">
         </div>
         <div class="datetime-container">
-            <div id="date-box">DATA IN CARICAMENTO</div>
+            <div id="date-box">-</div>
             <div id="clock">00:00:00</div>
         </div>
     </header>
@@ -167,7 +175,7 @@
                 <span id="sync-status" style="font-size: 0.8rem; font-weight: normal; opacity: 0.6;">-</span>
             </div>
             <div id="feed" class="feed-container">
-                <div class="status-msg">RECUPERO DATI DAL SISTEMA...</div>
+                <div class="status-msg">RECUPERO DATI...</div>
             </div>
         </div>
     </main>
@@ -185,7 +193,10 @@
             const optionsDate = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
             document.getElementById('date-box').textContent = now.toLocaleDateString('it-IT', optionsDate);
             document.getElementById('clock').textContent = now.toLocaleTimeString('it-IT', { hour12: false });
-            document.body.classList.toggle('light-mode', now.getHours() >= 8 && now.getHours() < 18);
+            
+            // Attivazione Light Mode 08:00 - 18:00
+            const hour = now.getHours();
+            document.body.classList.toggle('light-mode', hour >= 8 && hour < 18);
         }
         setInterval(updateClock, 1000); updateClock();
 
@@ -209,7 +220,6 @@
         async function fetchFromSheets() {
             const container = document.getElementById('feed');
             const syncStatus = document.getElementById('sync-status');
-            
             try {
                 const response = await fetch(PROXY + encodeURIComponent(CSV_URL + '&t=' + Date.now()));
                 const csvData = await response.text();
@@ -223,23 +233,15 @@
                         const desc = cols[2].trim();
                         const full = (title + " " + desc).toLowerCase();
                         const match = keywords.some(k => full.includes(k)) || /\bva\b/i.test(full);
-
                         if (match) {
-                            contentHTML += `
-                                <div class="feed-item">
-                                    <div class="item-title">${title.toUpperCase()}</div>
-                                    <div class="item-desc">${desc}</div>
-                                </div>`;
+                            contentHTML += `<div class="feed-item"><div class="item-title">${title.toUpperCase()}</div><div class="item-desc">${desc}</div></div>`;
                             count++;
                         }
                     }
                 });
-
                 container.innerHTML = count > 0 ? contentHTML : '<div class="status-msg">NESSUNA CRITICITÀ RILEVATA</div>';
                 syncStatus.textContent = "LIVE - " + new Date().toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'});
-            } catch (e) {
-                syncStatus.textContent = "ERRORE CONNESSIONE";
-            }
+            } catch (e) { syncStatus.textContent = "ERRORE CONNESSIONE"; }
         }
 
         fetchFromSheets();
