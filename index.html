@@ -165,10 +165,11 @@
     <script>
         function updateTheme() {
             const hour = new Date().getHours();
+            const body = document.body;
             if (hour >= 8 && hour < 18) {
-                document.body.classList.add('light-mode');
+                if (!body.classList.contains('light-mode')) body.classList.add('light-mode');
             } else {
-                document.body.classList.remove('light-mode');
+                if (body.classList.contains('light-mode')) body.classList.remove('light-mode');
             }
         }
 
@@ -180,18 +181,14 @@
         setInterval(updateClock, 1000);
         updateClock();
 
-        // PAROLE CHIAVE CON LOGICA FILTRO INTELLIGENTE
-        const keywords = [
-            "Varese", "VA", "A8", "A36", "Gallarate", "Busto", "Castellanza", 
-            "Saronno", "Pedemontana", "Malpensa", "Besnate", "Lainate", 
-            "Vergiate", "Gazzada", "Buguggiate", "Solbiate", "Olgiate"
-        ];
-
+        // LOGICA DI FILTRAGGIO MIGLIORATA
         async function fetchCCISS() {
             const feedContainer = document.getElementById('feed');
             const updateLabel = document.getElementById('last-update');
+            
+            // Usiamo rss2json con una chiave temporale per spaccare la cache
             const rssUrl = "https://www.cciss.it/rss";
-            const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&nocache=${Date.now()}`;
+            const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&api_key=your_free_api_key&count=100&t=${Date.now()}`;
 
             try {
                 const response = await fetch(apiUrl);
@@ -202,21 +199,29 @@
                     let count = 0;
 
                     data.items.forEach(item => {
-                        const fullText = (item.title + " " + item.description).toLowerCase();
+                        const title = (item.title || "");
+                        const desc = (item.description || "");
+                        const fullText = (title + " " + desc).toLowerCase();
+
+                        // 1. Controllo "Varese" (Ovunque, senza limiti)
+                        const hasVarese = fullText.includes("varese");
                         
-                        // Il trucco è qui: cerchiamo la parola con confini netti (\b)
-                        // Così "VA" matcherà "A8 (VA)" ma NON "vanno"
-                        const isRelevant = keywords.some(k => {
+                        // 2. Controllo Keywords specifiche (Con confini di parola per VA e A8)
+                        const keywords = ["a8", "a36", "gallarate", "busto", "castellanza", "saronno", "pedemontana", "malpensa", "besnate", "lainate", "vergiate", "gazzada"];
+                        const hasKeywords = keywords.some(k => {
                             const regex = new RegExp("\\b" + k + "\\b", "i");
                             return regex.test(fullText);
                         });
 
-                        if (isRelevant) {
+                        // 3. Controllo specifico per " VA " isolato
+                        const hasSiglaVA = /\bva\b/i.test(fullText);
+
+                        if (hasVarese || hasKeywords || hasSiglaVA) {
                             const div = document.createElement('div');
                             div.className = 'feed-item';
                             div.innerHTML = `
-                                <div class="item-title">${item.title.toUpperCase()}</div>
-                                <div class="item-desc">${item.description}</div>
+                                <div class="item-title">${title.toUpperCase()}</div>
+                                <div class="item-desc">${desc}</div>
                             `;
                             feedContainer.appendChild(div);
                             count++;
@@ -231,12 +236,13 @@
                     updateLabel.textContent = "Aggiornato: " + d.getHours() + ":" + d.getMinutes().toString().padStart(2, '0');
                 }
             } catch (error) {
+                console.error(error);
                 updateLabel.textContent = "Errore connessione";
             }
         }
 
         fetchCCISS();
-        setInterval(fetchCCISS, 300000);
+        setInterval(fetchCCISS, 300000); // Aggiorna ogni 5 minuti
     </script>
 </body>
 </html>
