@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>Info traffico e chiusure stradali</title>
     <style>
+        /* TEMA DARK DI BASE */
         :root {
             --bg-main: #0a0f18;
             --bg-card: #161e2e;
@@ -17,6 +18,7 @@
             --header-red: #450a0a;
         }
 
+        /* TEMA LIGHT AUTOMATICO (08:00 - 18:00) */
         body.light-mode {
             --bg-main: #f1f5f9;
             --bg-card: #ffffff;
@@ -41,7 +43,6 @@
             gap: 25px;
             overflow: hidden;
             position: relative;
-            transition: background-color 0.5s;
         }
 
         header {
@@ -53,16 +54,16 @@
         }
 
         header h1 { font-size: 1.6rem; text-transform: uppercase; margin: 0; color: var(--text-dim); }
-        .clock { font-size: 3rem; font-weight: 700; font-family: monospace; }
+        .clock { font-size: 3.5rem; font-weight: 700; font-family: monospace; }
         .logo-box { text-align: right; }
-        .logo-box img { max-height: 70px; width: auto; }
+        .logo-box img { max-height: 75px; width: auto; }
 
         main {
             display: grid;
             grid-template-columns: 480px 1fr;
             gap: 25px;
             height: 100%;
-            padding-bottom: 60px;
+            padding-bottom: 70px;
         }
 
         .panel {
@@ -79,6 +80,7 @@
             font-size: 1.1rem;
             font-weight: 900;
             text-transform: uppercase;
+            letter-spacing: 2px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -89,7 +91,7 @@
 
         .fixed-alert { padding: 30px; border-left: 10px solid var(--danger); }
         .fixed-alert .title { color: var(--danger); font-size: 1.65rem; font-weight: 800; margin-bottom: 20px; }
-        .fixed-alert .body-text { font-size: 1.35rem; line-height: 1.5; }
+        .fixed-alert .body-text { font-size: 1.35rem; line-height: 1.5; font-weight: bold; }
         .highlight { color: var(--warning); font-weight: bold; }
 
         .detour {
@@ -101,16 +103,16 @@
         .detour span { font-size: 0.9rem; color: var(--text-dim); text-transform: uppercase; }
         .detour div { font-size: 2.4rem; font-weight: 900; color: var(--warning); margin-top: 5px; }
 
-        .feed-container { padding: 0 25px; overflow-y: auto; }
+        .feed-container { padding: 0 25px; overflow-y: auto; flex-grow: 1; }
         .feed-item { padding: 22px 0; border-bottom: 1px solid var(--border); }
-        .feed-item .item-title { color: var(--warning); font-weight: bold; font-size: 1.2rem; margin-bottom: 8px; }
+        .feed-item .item-title { color: var(--warning); font-weight: bold; font-size: 1.25rem; margin-bottom: 8px; }
         .feed-item .item-desc { font-size: 1.1rem; line-height: 1.45; color: var(--text-bright); }
 
         .status-msg {
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 80%;
+            height: 100%;
             padding: 40px;
             color: var(--success);
             font-size: 2.2rem;
@@ -118,8 +120,8 @@
             text-align: center;
         }
 
-        .footer-logo { position: absolute; bottom: 25px; right: 25px; opacity: 0.9; }
-        .footer-logo img { max-height: 60px; width: auto; }
+        .footer-logo { position: absolute; bottom: 20px; right: 25px; }
+        .footer-logo img { max-height: 55px; width: auto; opacity: 0.9; }
     </style>
 </head>
 <body>
@@ -150,10 +152,10 @@
         <div class="panel">
             <div class="panel-header header-bollettino">
                 <span>Bollettino CCISS</span>
-                <span id="last-update" style="font-weight: normal; font-size: 0.8rem; opacity: 0.7;">Aggiornamento...</span>
+                <span id="last-update" style="font-weight: normal; font-size: 0.8rem; text-transform: none; opacity: 0.7;">Caricamento...</span>
             </div>
             <div id="feed" class="feed-container">
-                <div class="status-msg">Ricerca segnalazioni in corso...</div>
+                <div class="status-msg">Inizializzazione feed...</div>
             </div>
         </div>
     </main>
@@ -163,86 +165,80 @@
     </div>
 
     <script>
-        function updateTheme() {
+        // TEMA AUTOMATICO (8-18 LIGHT)
+        function checkTime() {
             const hour = new Date().getHours();
-            const body = document.body;
             if (hour >= 8 && hour < 18) {
-                if (!body.classList.contains('light-mode')) body.classList.add('light-mode');
+                document.body.classList.add('light-mode');
             } else {
-                if (body.classList.contains('light-mode')) body.classList.remove('light-mode');
+                document.body.classList.remove('light-mode');
             }
         }
 
         function updateClock() {
             const now = new Date();
             document.getElementById('clock').textContent = now.toLocaleTimeString('it-IT', { hour12: false });
-            updateTheme();
+            checkTime();
         }
         setInterval(updateClock, 1000);
         updateClock();
 
-        // LOGICA DI FILTRAGGIO MIGLIORATA
-        async function fetchCCISS() {
-            const feedContainer = document.getElementById('feed');
-            const updateLabel = document.getElementById('last-update');
+        // FILTRO RSS MIGLIORATO
+        async function fetchTraffic() {
+            const container = document.getElementById('feed');
+            const statusLabel = document.getElementById('last-update');
             
-            // Usiamo rss2json con una chiave temporale per spaccare la cache
+            // Usiamo un proxy diverso per assicurarci di leggere il CCISS senza blocchi
             const rssUrl = "https://www.cciss.it/rss";
-            const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&api_key=your_free_api_key&count=100&t=${Date.now()}`;
+            const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&t=${Date.now()}`;
 
             try {
                 const response = await fetch(apiUrl);
                 const data = await response.json();
                 
                 if (data.status === 'ok') {
-                    feedContainer.innerHTML = "";
-                    let count = 0;
+                    container.innerHTML = "";
+                    let foundCount = 0;
+                    
+                    const keys = ["varese", "gallarate", "busto", "castellanza", "saronno", "a8", "a36", "pedemontana", "malpensa", "besnate", "lainate", "vergiate", "gazzada"];
 
                     data.items.forEach(item => {
-                        const title = (item.title || "");
-                        const desc = (item.description || "");
+                        const title = item.title || "";
+                        const desc = item.description || "";
                         const fullText = (title + " " + desc).toLowerCase();
 
-                        // 1. Controllo "Varese" (Ovunque, senza limiti)
+                        // Controllo specifico: Varese o keywords locali
+                        // Usiamo una regex per VA isolato per evitare "vanno"
                         const hasVarese = fullText.includes("varese");
-                        
-                        // 2. Controllo Keywords specifiche (Con confini di parola per VA e A8)
-                        const keywords = ["a8", "a36", "gallarate", "busto", "castellanza", "saronno", "pedemontana", "malpensa", "besnate", "lainate", "vergiate", "gazzada"];
-                        const hasKeywords = keywords.some(k => {
-                            const regex = new RegExp("\\b" + k + "\\b", "i");
-                            return regex.test(fullText);
-                        });
+                        const hasVA = /\bva\b/.test(fullText);
+                        const hasOther = keys.some(k => fullText.includes(k));
 
-                        // 3. Controllo specifico per " VA " isolato
-                        const hasSiglaVA = /\bva\b/i.test(fullText);
-
-                        if (hasVarese || hasKeywords || hasSiglaVA) {
+                        if (hasVarese || hasVA || hasOther) {
                             const div = document.createElement('div');
                             div.className = 'feed-item';
                             div.innerHTML = `
                                 <div class="item-title">${title.toUpperCase()}</div>
                                 <div class="item-desc">${desc}</div>
                             `;
-                            feedContainer.appendChild(div);
-                            count++;
+                            container.appendChild(div);
+                            foundCount++;
                         }
                     });
 
-                    if (count === 0) {
-                        feedContainer.innerHTML = '<div class="status-msg">Nessuna nuova segnalazione per l\'area della Provincia di Varese</div>';
+                    if (foundCount === 0) {
+                        container.innerHTML = '<div class="status-msg">Nessuna nuova segnalazione per l\'area della Provincia di Varese</div>';
                     }
                     
                     const d = new Date();
-                    updateLabel.textContent = "Aggiornato: " + d.getHours() + ":" + d.getMinutes().toString().padStart(2, '0');
+                    statusLabel.textContent = "Aggiornato: " + d.getHours() + ":" + d.getMinutes().toString().padStart(2, '0');
                 }
-            } catch (error) {
-                console.error(error);
-                updateLabel.textContent = "Errore connessione";
+            } catch (e) {
+                statusLabel.textContent = "Errore connessione";
             }
         }
 
-        fetchCCISS();
-        setInterval(fetchCCISS, 300000); // Aggiorna ogni 5 minuti
+        fetchTraffic();
+        setInterval(fetchTraffic, 300000); // Ogni 5 minuti
     </script>
 </body>
 </html>
