@@ -75,7 +75,6 @@
             overflow: hidden;
         }
 
-        /* RISALTO TESTATE PANNELLI */
         .panel-header {
             padding: 18px 25px;
             font-size: 1.1rem;
@@ -88,13 +87,13 @@
         }
 
         .header-permanente {
-            background: #450a0a; /* Sfondo rosso scuro */
+            background: #450a0a;
             color: #ff8080;
             border-bottom: 3px solid var(--danger);
         }
 
         .header-bollettino {
-            background: #1e293b; /* Sfondo blu metallico */
+            background: #1e293b;
             color: var(--warning);
             border-bottom: 3px solid var(--warning);
         }
@@ -153,7 +152,7 @@
             color: #e2e8f0;
         }
 
-        /* RISALTO MESSAGGIO "NESSUNA SEGNALAZIONE" */
+        /* MESSAGGIO VUOTO */
         .status-msg {
             display: flex;
             justify-content: center;
@@ -161,12 +160,13 @@
             height: 80%;
             padding: 40px;
             color: var(--success);
-            font-size: 2.2rem; /* Molto più grande */
+            font-size: 2.2rem;
             font-weight: 700;
             text-align: center;
             line-height: 1.3;
         }
 
+        /* LOGO CCISS IN BASSO */
         .footer-logo {
             position: absolute;
             bottom: 25px;
@@ -207,7 +207,7 @@
 
         <div class="panel">
             <div class="panel-header header-bollettino">
-                <span>Bollettino CCISS (Ultime 3 Ore)</span>
+                <span>Bollettino CCISS</span>
                 <span id="last-update" style="font-weight: normal; font-size: 0.8rem; text-transform: none; opacity: 0.7;">Aggiornamento...</span>
             </div>
             <div id="feed" class="feed-container">
@@ -228,13 +228,15 @@
         setInterval(updateClock, 1000);
         updateClock();
 
-        const keywords = ["Varese", "VA", "A8", "Gallarate", "Busto", "Castellanza", "Saronno", "Pedemontana", "A36", "Malpensa", "Besnate", "Lainate", "Vergiate", "Gazzada", "Buguggiate", "Castiglione"];
+        // PAROLE CHIAVE ESPANSE
+        const keywords = ["Varese", "VA", "A8", "Gallarate", "Busto", "Castellanza", "Saronno", "Pedemontana", "A36", "Malpensa", "Besnate", "Lainate", "Vergiate", "Gazzada", "Buguggiate", "Castiglione", "Olgiate"];
 
         async function fetchCCISS() {
             const feedContainer = document.getElementById('feed');
             const updateLabel = document.getElementById('last-update');
             const rssUrl = "https://www.cciss.it/rss";
-            const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&t=${Date.now()}`;
+            // Aggiungiamo un parametro casuale per forzare il CCISS a darci dati freschi
+            const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&nocache=${new Date().getTime()}`;
 
             try {
                 const response = await fetch(apiUrl);
@@ -243,15 +245,22 @@
                 if (data.status === 'ok') {
                     feedContainer.innerHTML = "";
                     let count = 0;
-                    const treOreInMs = 3 * 60 * 60 * 1000;
+                    
+                    // Portiamo il limite a 24 ore per essere sicuri
+                    const finestraTemporale = 24 * 60 * 60 * 1000; 
                     const adesso = Date.now();
 
                     data.items.forEach(item => {
-                        const content = (item.title + " " + item.description).toLowerCase();
+                        const title = (item.title || "").toLowerCase();
+                        const desc = (item.description || "").toLowerCase();
+                        const fullText = title + " " + desc;
+
+                        // DATA: proviamo a leggerla in modo robusto
                         const dataPub = new Date(item.pubDate.replace(/-/g, "/")).getTime();
                         
-                        const isLocal = keywords.some(k => content.includes(k.toLowerCase()));
-                        const isRecent = (adesso - dataPub) < treOreInMs;
+                        // FILTRO: Se contiene una keyword ed è nelle ultime 24 ore
+                        const isLocal = keywords.some(k => fullText.includes(k.toLowerCase()));
+                        const isRecent = (adesso - dataPub) < finestraTemporale;
 
                         if (isLocal && isRecent) {
                             const div = document.createElement('div');
@@ -278,7 +287,7 @@
         }
 
         fetchCCISS();
-        setInterval(fetchCCISS, 300000);
+        setInterval(fetchCCISS, 300000); // 5 minuti
     </script>
 </body>
 </html>
