@@ -7,7 +7,7 @@
         body {
             background-color: #000000;
             color: #ffffff;
-            font-family: Arial, sans-serif;
+            font-family: "Helvetica Neue", Arial, sans-serif;
             margin: 0;
             padding: 25px;
             height: 100vh;
@@ -27,44 +27,52 @@
             padding-bottom: 10px;
         }
 
-        .header-left h1 {
+        h1 {
             margin: 0;
             font-size: 2.2rem;
             text-transform: uppercase;
+            font-weight: 900;
         }
 
-        .header-center .clock {
+        .clock {
             font-size: 4.5rem;
-            font-weight: bold;
             font-family: monospace;
+            font-weight: bold;
         }
 
-        .header-right { text-align: right; }
-        .header-right img { max-height: 90px; width: auto; }
+        .logo-area {
+            text-align: right;
+        }
 
-        /* MAIN CONTENT */
-        .container {
+        .logo-area img {
+            max-height: 85px;
+            width: auto;
+        }
+
+        /* GRIGLIA CONTENUTI */
+        .main-container {
             display: grid;
-            grid-template-columns: 500px 1fr; /* Sinistra fissa, destra dinamica */
+            grid-template-columns: 1fr 1fr;
             gap: 30px;
             height: 100%;
         }
 
-        /* SINISTRA: GALLARATE (FISSA) */
-        .fixed-panel {
-            background-color: #cc0000;
-            padding: 40px;
-            border-radius: 5px;
+        /* COLONNA SINISTRA: FISSA (GALLARATE) */
+        .panel-fixed {
+            background-color: #b30000;
             border: 4px solid #ffffff;
+            padding: 40px;
+            border-radius: 8px;
             display: flex;
             flex-direction: column;
         }
 
-        .fixed-panel h2 {
+        .panel-fixed h2 {
             font-size: 2.5rem;
-            margin: 0 0 25px 0;
+            margin: 0 0 30px 0;
             border-bottom: 3px solid white;
             padding-bottom: 10px;
+            text-transform: uppercase;
         }
 
         .alert-text {
@@ -75,62 +83,68 @@
 
         .highlight { color: #ffff00; }
 
-        .footer-advice {
+        .advice-box {
             margin-top: auto;
-            background: white;
-            color: black;
-            padding: 20px;
+            background: #ffffff;
+            color: #000000;
+            padding: 25px;
             text-align: center;
-            border-radius: 5px;
+            border-radius: 4px;
         }
-        .footer-advice span { font-size: 1.5rem; display: block; }
-        .footer-advice strong { font-size: 3.5rem; font-weight: 900; }
+        .advice-box span { font-size: 1.5rem; display: block; text-transform: uppercase; }
+        .advice-box strong { font-size: 3.5rem; font-weight: 900; }
 
-        /* DESTRA: FEED TRAFFICO (ESTRAZIONE TESTO) */
-        .live-panel {
+        /* COLONNA DESTRA: LIVE FEED (AUTOMATICO) */
+        .panel-live {
             background-color: #111111;
+            border: 2px solid #444;
             padding: 30px;
-            border: 2px solid #333;
-            border-radius: 5px;
+            border-radius: 8px;
             display: flex;
             flex-direction: column;
             overflow: hidden;
         }
 
-        .live-panel h2 {
+        .panel-live h2 {
             font-size: 1.8rem;
             color: #ffcc00;
             margin: 0 0 20px 0;
             text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
-        #traffic-list {
+        .feed-container {
             overflow-y: auto;
             flex-grow: 1;
         }
 
-        .event {
+        .traffic-item {
             border-bottom: 2px solid #222;
             padding: 20px 0;
         }
 
-        .event:last-child { border-bottom: none; }
+        .traffic-item:last-child { border-bottom: none; }
 
-        .event-title {
-            font-size: 1.8rem;
+        .traffic-title {
+            font-size: 1.7rem;
             font-weight: bold;
             color: #ffcc00;
-            margin-bottom: 10px;
             display: block;
+            margin-bottom: 10px;
         }
 
-        .event-desc {
-            font-size: 1.7rem;
+        .traffic-desc {
+            font-size: 1.6rem;
             line-height: 1.3;
-            color: #ffffff;
+            color: #e0e0e0;
         }
 
-        .loading-text { font-size: 1.5rem; color: #555; text-align: center; margin-top: 50px; }
+        .empty-msg {
+            text-align: center;
+            margin-top: 100px;
+            font-size: 1.8rem;
+            color: #00ff00;
+        }
     </style>
 </head>
 <body>
@@ -147,31 +161,34 @@
         </div>
     </header>
 
-    <div class="container">
+    <div class="main-container">
         
-        <div class="fixed-panel">
+        <div class="panel-fixed">
             <h2>AVVISO CHIUSURA</h2>
             <div class="alert-text">
                 A8 GALLARATE - ENTRATA CHIUSA<br><br>
                 Entrata chiusa dalle ore <span class="highlight">21:00</span> del <span class="highlight">23/02/2026</span> alle ore <span class="highlight">05:00</span> del <span class="highlight">24/06/2026</span> in direzione Milano per lavori.
             </div>
-            <div class="footer-advice">
+            <div class="advice-box">
                 <span>Entrata consigliata verso Milano:</span>
-                <strong>BUSTO ARSIZIO</strong>
+                <strong>Busto Arsizio</strong>
             </div>
         </div>
 
-        <div class="live-panel">
-            <h2>Situazione A8 / A36 in tempo reale</h2>
-            <div id="traffic-list">
-                <div class="loading-text">Collegamento ai sensori stradali...</div>
+        <div class="panel-live">
+            <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                <h2>Bollettino Traffico A8 / A36</h2>
+                <span id="update-time" style="font-size: 1rem; color: #555;">In aggiornamento...</span>
+            </div>
+            <div id="feed-content" class="feed-container">
+                <div style="text-align: center; padding-top: 50px; color: #666;">Ricezione dati in corso...</div>
             </div>
         </div>
 
     </div>
 
     <script>
-        // 1. OROLOGIO
+        // OROLOGIO
         function updateClock() {
             const now = new Date();
             document.getElementById('clock').textContent = now.toLocaleTimeString('it-IT', { hour12: false });
@@ -179,48 +196,56 @@
         setInterval(updateClock, 1000);
         updateClock();
 
-        // 2. RECUPERO DATI (Puntamento a fonte stabile per A8)
-        // Usiamo un servizio che trasforma il feed Autostrade in JSON per evitare blocchi
-        const keywords = ["Varese", "A8", "Gallarate", "Busto", "Castellanza", "Legnano", "Saronno", "A36", "Pedemontana", "Malpensa", "Gazzada", "Lainate"];
+        // FILTRO GEOGRAFICO VARESE
+        const areaKeywords = ["Varese", "A8", "Gallarate", "Busto", "Castellanza", "Legnano", "Saronno", "A36", "Pedemontana", "Malpensa", "Besnate", "Vergiate", "Lainate"];
 
-        async function getTraffic() {
-            const list = document.getElementById('traffic-list');
+        async function fetchTraffic() {
+            const container = document.getElementById('feed-content');
+            const updateLabel = document.getElementById('update-time');
+            
+            // Usiamo il feed RSS di Autostrade convertito in JSON (aggira il blocco connessione)
             const rssUrl = "https://www.autostrade.it/autostrade-gis/rss.do?tronco=A8";
-            const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&api_key=00000000000000000000000000000000`; // API libera
+            const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
 
             try {
                 const response = await fetch(apiUrl);
                 const data = await response.json();
                 
                 if (data.status === 'ok') {
-                    list.innerHTML = "";
-                    let found = 0;
+                    container.innerHTML = "";
+                    let count = 0;
 
                     data.items.forEach(item => {
-                        const content = (item.title + " " + item.description).toLowerCase();
-                        if (keywords.some(k => content.includes(k.toLowerCase())) && found < 6) {
+                        const fullText = (item.title + " " + item.description).toLowerCase();
+                        
+                        // Filtriamo solo per la zona di interesse
+                        if (areaKeywords.some(k => fullText.includes(k.toLowerCase())) && count < 6) {
                             const div = document.createElement('div');
-                            div.className = 'event';
+                            div.className = 'traffic-item';
                             div.innerHTML = `
-                                <span class="event-title">${item.title.toUpperCase()}</span>
-                                <div class="event-desc">${item.description}</div>
+                                <span class="traffic-title">${item.title.toUpperCase()}</span>
+                                <div class="traffic-desc">${item.description}</div>
                             `;
-                            list.appendChild(div);
-                            found++;
+                            container.appendChild(div);
+                            count++;
                         }
                     });
 
-                    if (found === 0) {
-                        list.innerHTML = '<div class="loading-text" style="color:#2ecc71;">✔ TRAFFICO REGOLARE SULLA RETE LOCALE</div>';
+                    if (count === 0) {
+                        container.innerHTML = '<div class="empty-msg">✔ Nessuna anomalia rilevata su A8 e Pedemontana</div>';
                     }
+                    
+                    const d = new Date();
+                    updateLabel.textContent = "Ultimo agg: " + d.getHours() + ":" + d.getMinutes().toString().padStart(2, '0');
                 }
-            } catch (e) {
-                list.innerHTML = '<div class="event-desc" style="color:red;">Errore di aggiornamento. Riprovo...</div>';
+            } catch (error) {
+                updateLabel.textContent = "Errore di rete";
             }
         }
 
-        getTraffic();
-        setInterval(getTraffic, 300000); // Aggiorna ogni 5 minuti
+        // Carica subito e poi ogni 5 minuti
+        fetchTraffic();
+        setInterval(fetchTraffic, 300000);
     </script>
 </body>
 </html>
