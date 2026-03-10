@@ -39,7 +39,7 @@
             letter-spacing: 2px; display: flex; justify-content: space-between; align-items: center;
         }
         .header-permanente { background: var(--header-red); color: var(--danger); border-bottom: 4px solid var(--danger); }
-        .header-bollettino { background: var(--header-dark); color: var(--warning); border-bottom: 3px solid var(--warning); }
+        .header-bollettino { background: var(--header-dark); color: var(--warning); border-bottom: 4px solid var(--warning); }
 
         /* SINISTRA: FISSO GALLARATE */
         .fixed-alert { padding: 35px; border-left: 12px solid var(--danger); }
@@ -56,7 +56,7 @@
         .feed-item { padding: 25px 0; border-bottom: 1px solid var(--border); }
         .feed-item:last-child { border-bottom: none; }
         .item-title { color: var(--warning); font-weight: 800; font-size: 1.4rem; margin-bottom: 12px; text-transform: uppercase; line-height: 1.2; }
-        .item-desc { font-size: 1.25rem; line-height: 1.5; color: var(--text-bright); }
+        .item-desc { font-size: 1.3rem; line-height: 1.5; color: var(--text-bright); }
 
         .status-msg { display: flex; justify-content: center; align-items: center; height: 100%; padding: 40px; color: var(--success); font-size: 2.4rem; font-weight: 800; text-align: center; line-height: 1.3; }
 
@@ -120,11 +120,32 @@
         setInterval(updateClock, 1000);
         updateClock();
 
+        // Database parole chiave per FILTRO COLONNA A
         const keywords = [
             "varese", "legnano", "gallarate", "busto arsizio", "busto a.", "castellanza", 
             "saronno", "a8", "a36", "pedemontana", "malpensa", "besnate", "lainate", 
             "vergiate", "gazzada", "buguggiate", "luino", "azzate", "cavaria"
         ];
+
+        // Funzione per parse CSV professionale (gestisce campi con virgolette e virgole interne)
+        function parseCSVLine(line) {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                if (char === '"') {
+                    inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                    result.push(current.trim());
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            result.push(current.trim());
+            return result;
+        }
 
         async function fetchFromSheets() {
             const container = document.getElementById('feed');
@@ -134,29 +155,25 @@
                 const response = await fetch(SHEET_CSV_URL + '&t=' + Date.now());
                 const csvData = await response.text();
                 
-                // Dividiamo le righe correttamente
                 const lines = csvData.split(/\r?\n/);
                 container.innerHTML = "";
                 let found = 0;
 
                 for (let i = 0; i < lines.length; i++) {
-                    const line = lines[i].trim();
-                    if (!line) continue;
+                    if (!lines[i].trim()) continue;
 
-                    // Regex avanzata per dividere le colonne (gestisce virgolette e virgole interne)
-                    const matches = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
+                    const columns = parseCSVLine(lines[i]);
                     
-                    // Controllo che ci sia almeno la colonna C (indice 2)
-                    if (matches && matches.length >= 3) {
-                        const title = matches[0].replace(/^"|"$/g, ''); // Colonna A
-                        const desc = matches[2].replace(/^"|"$/g, '');  // Colonna C (Notizia)
+                    // Colonna A è indice 0, Colonna C è indice 2
+                    if (columns.length >= 3) {
+                        const colA = columns[0].toLowerCase();
+                        const title = columns[0]; // Titolo originale
+                        const desc = columns[2];  // Notizia da colonna C
                         
-                        const fullText = (title + " " + desc).toLowerCase();
+                        // LOGICA: Cerca le keywords solo nella colonna A
+                        const matchA = keywords.some(k => colA.includes(k)) || /\bva\b/i.test(colA);
 
-                        const isLocal = keywords.some(k => fullText.includes(k));
-                        const isVA = /\bva\b/i.test(fullText);
-
-                        if (isLocal || isVA) {
+                        if (matchA) {
                             const div = document.createElement('div');
                             div.className = 'feed-item';
                             div.innerHTML = `
@@ -170,7 +187,7 @@
                 }
 
                 if (found === 0) {
-                    container.innerHTML = '<div class="status-msg">Nessuna nuova segnalazione per l\'area della Provincia di Varese e Legnano</div>';
+                    container.innerHTML = '<div class="status-msg">Nessuna nuova segnalazione rilevata per la Provincia di Varese o Legnano</div>';
                 }
                 sync.textContent = "LIVE - " + new Date().toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'});
 
