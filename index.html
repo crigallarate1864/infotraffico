@@ -2,9 +2,10 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>SISTEMA INFORMATIVO VIABILITÀ</title>
+    <title>SISTEMA MONITORAGGIO VIABILITÀ</title>
     <style>
         :root {
+            /* TEMA DARK */
             --bg-main: #0a0f18; --bg-card: #161e2e; --border: #2d3748;
             --text-bright: #f8fafc; --text-dim: #94a3b8;
             --danger: #e11d48; --warning: #fbbf24; --success: #4ade80;
@@ -12,6 +13,7 @@
         }
 
         body.light-mode {
+            /* TEMA LIGHT (08:00 - 18:00) */
             --bg-main: #f1f5f9; --bg-card: #ffffff; --border: #cbd5e1;
             --text-bright: #0f172a; --text-dim: #475569;
             --header-dark: #e2e8f0; --header-red: #fee2e2;
@@ -20,13 +22,14 @@
         * { box-sizing: border-box; }
         body {
             background-color: var(--bg-main); color: var(--text-bright);
-            font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; padding: 25px;
+            font-family: 'Segoe UI', Tahoma, Helvetica, sans-serif; margin: 0; padding: 25px;
             height: 100vh; display: grid; grid-template-rows: 90px 1fr; gap: 25px; overflow: hidden;
+            transition: background 0.4s;
         }
 
-        header { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; border-bottom: 3px solid var(--border); }
+        header { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; border-bottom: 3px solid var(--border); padding-bottom: 10px; }
         .clock { font-size: 3.5rem; font-weight: 700; font-family: monospace; }
-        .logo-box img { max-height: 70px; width: auto; }
+        .logo-box img { max-height: 75px; width: auto; }
 
         main { display: grid; grid-template-columns: 480px 1fr; gap: 25px; height: 100%; padding-bottom: 80px; }
         .panel { background: var(--bg-card); border: 2px solid var(--border); border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; }
@@ -43,7 +46,7 @@
         .fixed-alert .body-text { font-size: 1.4rem; line-height: 1.5; font-weight: bold; }
         .highlight { color: var(--warning); font-weight: 900; }
 
-        .detour { margin-top: auto; background: rgba(0,0,0,0.1); padding: 30px; border-top: 2px solid var(--border); }
+        .detour { margin-top: auto; background: rgba(0,0,0,0.05); padding: 30px; border-top: 2px solid var(--border); }
         .detour span { font-size: 1rem; color: var(--text-dim); text-transform: uppercase; }
         .detour div { font-size: 2.8rem; font-weight: 900; color: var(--warning); margin-top: 10px; }
 
@@ -52,16 +55,16 @@
         .item-title { color: var(--warning); font-weight: 800; font-size: 1.3rem; margin-bottom: 10px; text-transform: uppercase; }
         .item-desc { font-size: 1.2rem; line-height: 1.4; color: var(--text-bright); }
 
-        .status-msg { display: flex; justify-content: center; align-items: center; height: 100%; padding: 40px; color: var(--success); font-size: 2.5rem; font-weight: 800; text-align: center; }
+        .status-msg { display: flex; justify-content: center; align-items: center; height: 100%; padding: 40px; color: var(--success); font-size: 2.5rem; font-weight: 800; text-align: center; line-height: 1.3; }
 
-        .footer-logos { position: absolute; bottom: 20px; right: 25px; display: flex; align-items: center; gap: 20px; }
-        .footer-logos img { max-height: 60px; width: auto; }
+        .footer-logo { position: absolute; bottom: 25px; right: 25px; opacity: 1; }
+        .footer-logo img { max-height: 60px; width: auto; }
     </style>
 </head>
 <body>
 
     <header>
-        <h1 style="font-size: 1.4rem; color: var(--text-dim); margin:0;">SISTEMA MONITORAGGIO VIABILITÀ</h1>
+        <h1 style="font-size: 1.4rem; color: var(--text-dim); margin:0;">INFO VIABILITÀ SEDE</h1>
         <div id="clock" class="clock">00:00:00</div>
         <div class="logo-box">
             <img src="logo.png" alt="" onerror="this.style.display='none'">
@@ -86,19 +89,21 @@
         <div class="panel">
             <div class="panel-header header-bollettino">
                 <span>Bollettino CCISS - Provincia di Varese</span>
-                <span id="sync-status" style="font-size: 0.8rem; font-weight: normal; opacity: 0.6;">-</span>
+                <span id="sync-status" style="font-size: 0.8rem; font-weight: normal; opacity: 0.6;">Sincronizzazione...</span>
             </div>
             <div id="feed" class="feed-container">
-                <div class="status-msg" id="main-msg">SINCRONIZZAZIONE DATI...</div>
+                <div class="status-msg">CONNESSIONE AL DATABASE...</div>
             </div>
         </div>
     </main>
 
-    <div class="footer-logos">
+    <div class="footer-logo">
         <img src="logo CCISS.png" alt="" onerror="this.style.display='none'">
     </div>
 
     <script>
+        const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTQD7mYVjhrw9Ma3t_av071IGSDcaLoyojD55ZoOc-LuMIkT5OHWKwS93LQhVJCOGVHBJsG9Kyd2sXK/pub?output=csv';
+
         function updateTheme() {
             const h = new Date().getHours();
             document.body.classList.toggle('light-mode', h >= 8 && h < 18);
@@ -112,81 +117,63 @@
         setInterval(updateClock, 1000);
         updateClock();
 
-        const keywords = ["varese", "gallarate", "busto", "castellanza", "saronno", "a8", "a36", "pedemontana", "malpensa", "lainate", "besnate", "vergiate", "gazzada"];
+        const keywords = ["varese", "gallarate", "busto", "castellanza", "saronno", "a8", "a36", "pedemontana", "malpensa", "besnate", "lainate", "vergiate", "gazzada"];
 
-        async function fetchRSS() {
-            const feed = document.getElementById('feed');
-            const sync = document.getElementById('sync-status');
-            const rssUrl = "https://www.cciss.it/rss";
-            
-            // Tentativo 1: AllOrigins (più potente)
-            // Tentativo 2: RSS2JSON (fallback)
-            // Tentativo 3: CORSProxy (emergenza)
-            
-            const urls = [
-                `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}&t=${Date.now()}`,
-                `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&t=${Date.now()}`
-            ];
-
-            for (let url of urls) {
-                try {
-                    const response = await fetch(url);
-                    const data = await response.json();
-                    let items = [];
-
-                    if (data.contents) { // Formato AllOrigins
-                        const parser = new DOMParser();
-                        const xml = parser.parseFromString(data.contents, "text/xml");
-                        items = Array.from(xml.querySelectorAll("item")).map(i => ({
-                            title: i.querySelector("title")?.textContent,
-                            description: i.querySelector("description")?.textContent
-                        }));
-                    } else if (data.items) { // Formato RSS2JSON
-                        items = data.items;
-                    }
-
-                    if (items.length > 0) {
-                        renderFeed(items);
-                        sync.textContent = "LIVE - " + new Date().toLocaleTimeString();
-                        return; // Esci se ha funzionato
-                    }
-                } catch (e) {
-                    console.log("Tentativo fallito, provo il prossimo...");
-                }
-            }
-            sync.textContent = "ERRORE CONNESSIONE";
-        }
-
-        function renderFeed(items) {
+        async function fetchFromSheets() {
             const container = document.getElementById('feed');
-            container.innerHTML = "";
-            let found = 0;
+            const sync = document.getElementById('sync-status');
+            
+            try {
+                // Aggiungiamo timestamp per evitare cache di sistema
+                const response = await fetch(SHEET_CSV_URL + '&t=' + Date.now());
+                const csvData = await response.text();
+                
+                // Parser CSV che gestisce le virgolette di Google Sheets
+                const lines = csvData.split('\n');
+                container.innerHTML = "";
+                let found = 0;
 
-            items.forEach(item => {
-                const title = item.title || "";
-                const desc = item.description || "";
-                const fullText = (title + " " + desc).toLowerCase();
+                // Saltiamo la prima riga se contiene intestazioni (opzionale)
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (!line) continue;
 
-                // Filtro "VA" sicuro (cerca solo VA come parola isolata)
-                const isVA = /\bva\b/i.test(fullText);
-                const isLocal = keywords.some(k => fullText.includes(k));
+                    // Regex per dividere correttamente le colonne del CSV di Google
+                    const columns = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
+                    if (!columns || columns.length < 2) continue;
 
-                if (isLocal || isVA) {
-                    const div = document.createElement('div');
-                    div.className = 'feed-item';
-                    div.innerHTML = `<div class="item-title">${title.toUpperCase()}</div><div class="item-desc">${desc}</div>`;
-                    container.appendChild(div);
-                    found++;
+                    const title = columns[0].replace(/^"|"$/g, '');
+                    const desc = columns[1].replace(/^"|"$/g, '');
+                    const fullText = (title + " " + desc).toLowerCase();
+
+                    // Filtro Varese (aggressivo) e Filtro VA (parola isolata)
+                    const isVarese = fullText.includes("varese");
+                    const hasKey = keywords.some(k => fullText.includes(k));
+                    const isVA = /\bva\b/i.test(fullText);
+
+                    if (isVarese || hasKey || isVA) {
+                        const div = document.createElement('div');
+                        div.className = 'feed-item';
+                        div.innerHTML = `<div class="item-title">${title.toUpperCase()}</div><div class="item-desc">${desc}</div>`;
+                        container.appendChild(div);
+                        found++;
+                    }
                 }
-            });
 
-            if (found === 0) {
-                container.innerHTML = '<div class="status-msg">Nessuna nuova segnalazione per l\'area della Provincia di Varese</div>';
+                if (found === 0) {
+                    container.innerHTML = '<div class="status-msg">Nessuna nuova segnalazione per l\'area della Provincia di Varese</div>';
+                }
+                sync.textContent = "LIVE - " + new Date().toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'});
+
+            } catch (e) {
+                sync.textContent = "ERRORE SINCRONIZZAZIONE";
+                console.error("Errore fetch:", e);
             }
         }
 
-        fetchRSS();
-        setInterval(fetchRSS, 300000); // 5 minuti
+        // Avvio immediato e refresh ogni 3 minuti
+        fetchFromSheets();
+        setInterval(fetchFromSheets, 180000);
     </script>
 </body>
 </html>
