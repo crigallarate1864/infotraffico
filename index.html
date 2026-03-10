@@ -61,7 +61,7 @@
             grid-template-columns: 480px 1fr;
             gap: 25px;
             height: 100%;
-            padding-bottom: 60px;
+            padding-bottom: 70px;
         }
 
         .panel {
@@ -97,11 +97,13 @@
             padding: 25px;
             border-top: 2px solid var(--border);
         }
+        .detour span { font-size: 0.9rem; color: var(--text-dim); text-transform: uppercase; }
         .detour div { font-size: 2.4rem; font-weight: 900; color: var(--warning); margin-top: 5px; }
 
         .feed-container { padding: 0 25px; overflow-y: auto; }
         .feed-item { padding: 22px 0; border-bottom: 1px solid var(--border); }
         .feed-item .item-title { color: var(--warning); font-weight: bold; font-size: 1.2rem; margin-bottom: 8px; }
+        .feed-item .item-desc { font-size: 1.1rem; line-height: 1.45; color: var(--text-bright); }
 
         .status-msg {
             display: flex;
@@ -147,10 +149,10 @@
         <div class="panel">
             <div class="panel-header header-bollettino">
                 <span>Bollettino CCISS</span>
-                <span id="last-update" style="font-weight: normal; font-size: 0.8rem; text-transform: none; opacity: 0.7;">Aggiornamento...</span>
+                <span id="last-update" style="font-weight: normal; font-size: 0.8rem; opacity: 0.7;">Connessione...</span>
             </div>
             <div id="feed" class="feed-container">
-                <div class="status-msg">Caricamento in corso...</div>
+                <div id="status-display" class="status-msg">In attesa di dati dal server...</div>
             </div>
         </div>
     </main>
@@ -173,65 +175,66 @@
         setInterval(updateClock, 1000);
         updateClock();
 
-        // FILTRO RADICALE: Se la parola è nel testo, DEVE uscire.
+        // FILTRO CCISS
         async function fetchCCISS() {
             const feedContainer = document.getElementById('feed');
+            const statusDisplay = document.getElementById('status-display');
             const updateLabel = document.getElementById('last-update');
             
-            // Usiamo allorigins per scaricare l'XML originale senza traduttori che fanno cache
+            // Usiamo RSS2JSON, molto più affidabile per i browser
             const rssUrl = "https://www.cciss.it/rss";
-            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}&timestamp=${Date.now()}`;
+            const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&nocache=${Date.now()}`;
 
             try {
-                const response = await fetch(proxyUrl);
+                updateLabel.textContent = "Richiesta inviata...";
+                const response = await fetch(apiUrl);
                 const data = await response.json();
                 
-                // Analizziamo l'XML grezzo
-                const parser = new DOMParser();
-                const xmlDoc = parser.parseFromString(data.contents, "text/xml");
-                const items = xmlDoc.querySelectorAll("item");
+                if (data.status === 'ok') {
+                    feedContainer.innerHTML = "";
+                    let count = 0;
+                    const keywords = ["varese", "gallarate", "busto", "castellanza", "saronno", "a8", "a36", "pedemontana", "malpensa", "besnate", "lainate", "vergiate", "gazzada"];
 
-                feedContainer.innerHTML = "";
-                let count = 0;
+                    data.items.forEach(item => {
+                        const title = (item.title || "");
+                        const desc = (item.description || "");
+                        const fullText = (title + " " + desc).toLowerCase();
 
-                const keywords = ["varese", "gallarate", "busto", "castellanza", "saronno", "a8", "a36", "pedemontana", "malpensa", "besnate", "lainate", "vergiate", "gazzada"];
+                        // Controllo Varese o keywords (con filtro VA isolato)
+                        const hasVarese = fullText.includes("varese");
+                        const hasKeywords = keywords.some(k => fullText.includes(k));
+                        const hasVA = /\bva\b/.test(fullText);
 
-                items.forEach(item => {
-                    const title = item.querySelector("title")?.textContent || "";
-                    const desc = item.querySelector("description")?.textContent || "";
-                    const fullText = (title + " " + desc).toLowerCase();
+                        if (hasVarese || hasKeywords || hasVA) {
+                            const div = document.createElement('div');
+                            div.className = 'feed-item';
+                            div.innerHTML = `
+                                <div class="item-title">${title.toUpperCase()}</div>
+                                <div class="item-desc">${desc}</div>
+                            `;
+                            feedContainer.appendChild(div);
+                            count++;
+                        }
+                    });
 
-                    // Controllo Varese ovunque e sigla VA isolata
-                    const hasVarese = fullText.indexOf("varese") !== -1;
-                    const hasSiglaVA = /\bva\b/.test(fullText);
-                    const hasKeywords = keywords.some(k => fullText.indexOf(k) !== -1);
-
-                    if (hasVarese || hasSiglaVA || hasKeywords) {
-                        const div = document.createElement('div');
-                        div.className = 'feed-item';
-                        div.innerHTML = `
-                            <div class="item-title">${title.toUpperCase()}</div>
-                            <div class="item-desc">${desc}</div>
-                        `;
-                        feedContainer.appendChild(div);
-                        count++;
+                    if (count === 0) {
+                        feedContainer.innerHTML = '<div class="status-msg">Nessuna nuova segnalazione per l\'area della Provincia di Varese</div>';
                     }
-                });
-
-                if (count === 0) {
-                    feedContainer.innerHTML = '<div class="status-msg">Nessuna nuova segnalazione per l\'area della Provincia di Varese</div>';
+                    
+                    const d = new Date();
+                    updateLabel.textContent = "Aggiornato: " + d.getHours() + ":" + d.getMinutes().toString().padStart(2, '0');
+                } else {
+                    throw new Error("Dati non validi");
                 }
-                
-                const d = new Date();
-                updateLabel.textContent = "Aggiornato: " + d.getHours() + ":" + d.getMinutes().toString().padStart(2, '0');
-
             } catch (error) {
-                updateLabel.textContent = "Errore connessione";
+                console.error(error);
+                updateLabel.textContent = "Errore Connessione";
+                statusDisplay.innerHTML = "ERRORE DI RETE<br><small style='font-size:1rem; color:red;'>Verificare connessione internet o firewall</small>";
             }
         }
 
         fetchCCISS();
-        setInterval(fetchCCISS, 300000);
+        setInterval(fetchCCISS, 300000); // 5 minuti
     </script>
 </body>
 </html>
