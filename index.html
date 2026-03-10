@@ -28,25 +28,28 @@
         .panel-header { padding: 20px 25px; font-size: 1.2rem; font-weight: 900; text-transform: uppercase; display: flex; justify-content: space-between; align-items: center; }
         .header-permanente { background: var(--header-red); color: var(--danger); border-bottom: 4px solid var(--danger); }
         .header-bollettino { background: var(--header-dark); color: var(--warning); border-bottom: 4px solid var(--warning); }
+        
         .fixed-alert { padding: 35px; border-left: 12px solid var(--danger); }
         .fixed-alert .title { color: var(--danger); font-size: 1.7rem; font-weight: 800; margin-bottom: 25px; }
         .fixed-alert .body-text { font-size: 1.4rem; line-height: 1.5; font-weight: bold; }
         .highlight { color: var(--warning); font-weight: 900; }
+        
         .detour { margin-top: auto; background: rgba(0,0,0,0.05); padding: 30px; border-top: 2px solid var(--border); }
         .detour div { font-size: 2.8rem; font-weight: 900; color: var(--warning); margin-top: 10px; }
+        
         .feed-container { padding: 0 30px; overflow-y: auto; flex-grow: 1; }
         .feed-item { padding: 25px 0; border-bottom: 1px solid var(--border); }
         .item-title { color: var(--warning); font-weight: 800; font-size: 1.5rem; margin-bottom: 12px; text-transform: uppercase; }
         .item-desc { font-size: 1.4rem; line-height: 1.5; color: var(--text-bright); font-weight: 500; }
+        
         .status-msg { display: flex; justify-content: center; align-items: center; height: 100%; padding: 40px; color: var(--success); font-size: 2.2rem; font-weight: 800; text-align: center; }
         .footer-logo { position: absolute; bottom: 25px; right: 25px; }
-        .footer-logo img { max-height: 65px; width: auto; }
     </style>
 </head>
 <body>
 
     <header>
-        <h1 style="font-size: 1.4rem; color: var(--text-dim); margin:0;">INFO VIABILITÀ</h1>
+        <h1 style="font-size: 1.4rem; color: var(--text-dim); margin:0;">SISTEMA VIABILITÀ</h1>
         <div id="clock" class="clock">00:00:00</div>
         <div style="text-align: right;"><img src="logo.png" style="max-height: 75px;" onerror="this.style.display='none'"></div>
     </header>
@@ -64,15 +67,15 @@
         <div class="panel">
             <div class="panel-header header-bollettino">
                 <span>Area VA / Legnano / A8 / A36</span>
-                <span id="sync-status" style="font-size: 0.8rem; font-weight: normal; opacity: 0.6;">Avvio sistema...</span>
+                <span id="sync-status" style="font-size: 0.8rem; font-weight: normal; opacity: 0.6;">Sincronizzazione...</span>
             </div>
             <div id="feed" class="feed-container">
-                <div id="main-status" class="status-msg">CONNESSIONE A GOOGLE SHEETS...</div>
+                <div id="loading-msg" class="status-msg">CONNESSIONE AL DATABASE...</div>
             </div>
         </div>
     </main>
 
-    <div class="footer-logo"><img src="logo CCISS.png" onerror="this.style.display='none'"></div>
+    <div class="footer-logo"><img src="logo CCISS.png" style="max-height: 65px;" onerror="this.style.display='none'"></div>
 
     <script>
         const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTQD7mYVjhrw9Ma3t_av071IGSDcaLoyojD55ZoOc-LuMIkT5OHWKwS93LQhVJCOGVHBJsG9Kyd2sXK/pub?output=csv';
@@ -84,63 +87,59 @@
         }
         setInterval(updateClock, 1000); updateClock();
 
-        // FILTRO RICHIESTO
-        const keywords = ["varese", "legnano", "a8", "a36", "gallarate", "busto"];
+        const keywords = ["varese", "legnano", "a8", "a36"];
 
         async function fetchFromSheets() {
             const container = document.getElementById('feed');
             const syncStatus = document.getElementById('sync-status');
-            const mainStatus = document.getElementById('main-status');
             
             try {
-                const response = await fetch(SHEET_CSV_URL + '&nocache=' + new Date().getTime());
-                if (!response.ok) throw new Error("HTTP " + response.status);
-                
+                const response = await fetch(SHEET_CSV_URL + '&t=' + Date.now());
                 const csvData = await response.text();
-                if (!csvData || csvData.length < 10) throw new Error("File CSV vuoto");
-
                 const lines = csvData.split(/\r?\n/);
-                let htmlContent = "";
-                let found = 0;
+                
+                let foundItems = [];
 
                 for (let i = 0; i < lines.length; i++) {
-                    // Parser semplificato: divide per virgola ma gestisce le virgolette
+                    if (!lines[i]) continue;
+                    // Parser per dividere le colonne A, B, C
                     const cols = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
                     
                     if (cols.length >= 3) {
-                        const title = cols[0].replace(/"/g, "").trim();
-                        const desc = cols[2].replace(/"/g, "").trim();
-                        const full = (title + " " + desc).toLowerCase();
+                        const title = cols[0].replace(/"/g, "").trim(); // Colonna A
+                        const desc = cols[2].replace(/"/g, "").trim();  // Colonna C
+                        const titleLower = title.toLowerCase();
 
-                        const match = keywords.some(k => full.includes(k)) || /\bva\b/i.test(full);
+                        // FILTRO: Se una delle keywords è presente in Colonna A
+                        const match = keywords.some(k => titleLower.includes(k)) || /\bva\b/i.test(titleLower);
 
                         if (match) {
-                            htmlContent += `
-                                <div class="feed-item">
-                                    <div class="item-title">${title.toUpperCase()}</div>
-                                    <div class="item-desc">${desc}</div>
-                                </div>`;
-                            found++;
+                            foundItems.push({ title: title, desc: desc });
                         }
                     }
                 }
 
-                if (found > 0) {
-                    container.innerHTML = htmlContent;
+                if (foundItems.length > 0) {
+                    container.innerHTML = foundItems.map(item => `
+                        <div class="feed-item">
+                            <div class="item-title">${item.title.toUpperCase()}</div>
+                            <div class="item-desc">${item.desc}</div>
+                        </div>
+                    `).join('');
                 } else {
-                    container.innerHTML = '<div class="status-msg">Nessuna criticità rilevata su Varese, Legnano, A8 e A36</div>';
+                    container.innerHTML = '<div class="status-msg">Nessuna segnalazione rilevata per Varese, Legnano, A8 o A36</div>';
                 }
-                syncStatus.textContent = "AGGIORNATO: " + new Date().toLocaleTimeString();
+                syncStatus.textContent = "LIVE - " + new Date().toLocaleTimeString();
 
             } catch (e) {
                 console.error(e);
-                syncStatus.textContent = "ERRORE DI RETE";
-                mainStatus.innerHTML = "ERRORE CARICAMENTO DATI<br><small style='font-size:1rem; color:red;'>" + e.message + "</small>";
+                syncStatus.textContent = "ERRORE CONNESSIONE";
+                container.innerHTML = '<div class="status-msg" style="color:var(--danger)">ERRORE DI RETE: Verificare pubblicazione CSV</div>';
             }
         }
 
         fetchFromSheets();
-        setInterval(fetchFromSheets, 60000); // Controlla ogni minuto
+        setInterval(fetchFromSheets, 60000); // Refresh ogni minuto
     </script>
 </body>
 </html>
