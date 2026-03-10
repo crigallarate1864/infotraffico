@@ -39,7 +39,7 @@
             letter-spacing: 2px; display: flex; justify-content: space-between; align-items: center;
         }
         .header-permanente { background: var(--header-red); color: var(--danger); border-bottom: 4px solid var(--danger); }
-        .header-bollettino { background: var(--header-dark); color: var(--warning); border-bottom: 4px solid var(--warning); }
+        .header-bollettino { background: var(--header-dark); color: var(--warning); border-bottom: 3px solid var(--warning); }
 
         /* SINISTRA: FISSO GALLARATE */
         .fixed-alert { padding: 35px; border-left: 12px solid var(--danger); }
@@ -120,13 +120,10 @@
         setInterval(updateClock, 1000);
         updateClock();
 
-        // Database parole chiave Provincia di Varese + Legnano
         const keywords = [
             "varese", "legnano", "gallarate", "busto arsizio", "busto a.", "castellanza", 
             "saronno", "a8", "a36", "pedemontana", "malpensa", "besnate", "lainate", 
-            "vergiate", "gazzada", "buguggiate", "somma lombardo", "tradate", 
-            "induno olona", "arcisate", "luino", "azzate", "cavaria", "solbiate", 
-            "olgiate", "fagnano", "mornago", "jerago"
+            "vergiate", "gazzada", "buguggiate", "luino", "azzate", "cavaria"
         ];
 
         async function fetchFromSheets() {
@@ -137,7 +134,8 @@
                 const response = await fetch(SHEET_CSV_URL + '&t=' + Date.now());
                 const csvData = await response.text();
                 
-                const lines = csvData.split('\n');
+                // Dividiamo le righe correttamente
+                const lines = csvData.split(/\r?\n/);
                 container.innerHTML = "";
                 let found = 0;
 
@@ -145,27 +143,29 @@
                     const line = lines[i].trim();
                     if (!line) continue;
 
-                    // Regex per gestire correttamente il CSV con virgolette e virgole interne
+                    // Regex avanzata per dividere le colonne (gestisce virgolette e virgole interne)
                     const matches = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
-                    if (!matches || matches.length < 2) continue;
+                    
+                    // Controllo che ci sia almeno la colonna C (indice 2)
+                    if (matches && matches.length >= 3) {
+                        const title = matches[0].replace(/^"|"$/g, ''); // Colonna A
+                        const desc = matches[2].replace(/^"|"$/g, '');  // Colonna C (Notizia)
+                        
+                        const fullText = (title + " " + desc).toLowerCase();
 
-                    const title = matches[0].replace(/^"|"$/g, '');
-                    const desc = matches[1].replace(/^"|"$/g, '');
-                    const fullText = (title + " " + desc).toLowerCase();
+                        const isLocal = keywords.some(k => fullText.includes(k));
+                        const isVA = /\bva\b/i.test(fullText);
 
-                    // Controllo corrispondenza (Keyword provincia o sigla VA isolata)
-                    const isLocal = keywords.some(k => fullText.includes(k));
-                    const isVA = /\bva\b/i.test(fullText);
-
-                    if (isLocal || isVA) {
-                        const div = document.createElement('div');
-                        div.className = 'feed-item';
-                        div.innerHTML = `
-                            <div class="item-title">${title.toUpperCase()}</div>
-                            <div class="item-desc">${desc}</div>
-                        `;
-                        container.appendChild(div);
-                        found++;
+                        if (isLocal || isVA) {
+                            const div = document.createElement('div');
+                            div.className = 'feed-item';
+                            div.innerHTML = `
+                                <div class="item-title">${title.toUpperCase()}</div>
+                                <div class="item-desc">${desc}</div>
+                            `;
+                            container.appendChild(div);
+                            found++;
+                        }
                     }
                 }
 
@@ -176,12 +176,12 @@
 
             } catch (e) {
                 sync.textContent = "ERRORE CONNESSIONE";
-                console.error(e);
+                console.error("Errore fetch:", e);
             }
         }
 
         fetchFromSheets();
-        setInterval(fetchFromSheets, 180000); // Refresh ogni 3 minuti
+        setInterval(fetchFromSheets, 180000); // 3 minuti
     </script>
 </body>
 </html>
