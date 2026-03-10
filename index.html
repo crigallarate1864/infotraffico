@@ -31,7 +31,7 @@
             position: relative;
         }
 
-        /* HEADER SUPERIORE */
+        /* HEADER */
         header {
             display: grid;
             grid-template-columns: 1fr auto 1fr;
@@ -152,7 +152,6 @@
             color: #e2e8f0;
         }
 
-        /* MESSAGGIO VUOTO */
         .status-msg {
             display: flex;
             justify-content: center;
@@ -211,7 +210,7 @@
                 <span id="last-update" style="font-weight: normal; font-size: 0.8rem; text-transform: none; opacity: 0.7;">Aggiornamento...</span>
             </div>
             <div id="feed" class="feed-container">
-                <div class="status-msg">Ricerca segnalazioni CCISS...</div>
+                <div class="status-msg">Ricerca segnalazioni in corso...</div>
             </div>
         </div>
     </main>
@@ -228,14 +227,19 @@
         setInterval(updateClock, 1000);
         updateClock();
 
-        // PAROLE CHIAVE ESPANSE
-        const keywords = ["Varese", "VA", "A8", "Gallarate", "Busto", "Castellanza", "Saronno", "Pedemontana", "A36", "Malpensa", "Besnate", "Lainate", "Vergiate", "Gazzada", "Buguggiate", "Castiglione", "Olgiate"];
+        // LISTA PAROLE CHIAVE PROVINCIA DI VARESE (A8 / A36 / SS)
+        const keywords = [
+            "Varese", "Gallarate", "Busto", "Castellanza", "Saronno", 
+            "A8", "A36", "Pedemontana", "Malpensa", "Besnate", 
+            "Lainate", "Vergiate", "Gazzada", "Buguggiate", 
+            "Legnano", "Azzate", "Cavaria", "Solbiate", "VA", "Angera", "Cittiglio"
+        ];
 
         async function fetchCCISS() {
             const feedContainer = document.getElementById('feed');
             const updateLabel = document.getElementById('last-update');
             const rssUrl = "https://www.cciss.it/rss";
-            // Aggiungiamo un parametro casuale per forzare il CCISS a darci dati freschi
+            // Forziamo il caricamento bypassando ogni cache
             const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&nocache=${new Date().getTime()}`;
 
             try {
@@ -245,24 +249,17 @@
                 if (data.status === 'ok') {
                     feedContainer.innerHTML = "";
                     let count = 0;
-                    
-                    // Portiamo il limite a 24 ore per essere sicuri
-                    const finestraTemporale = 24 * 60 * 60 * 1000; 
-                    const adesso = Date.now();
 
                     data.items.forEach(item => {
                         const title = (item.title || "").toLowerCase();
                         const desc = (item.description || "").toLowerCase();
                         const fullText = title + " " + desc;
 
-                        // DATA: proviamo a leggerla in modo robusto
-                        const dataPub = new Date(item.pubDate.replace(/-/g, "/")).getTime();
-                        
-                        // FILTRO: Se contiene una keyword ed è nelle ultime 24 ore
-                        const isLocal = keywords.some(k => fullText.includes(k.toLowerCase()));
-                        const isRecent = (adesso - dataPub) < finestraTemporale;
+                        // FILTRO: Se vedi una parola della nostra zona, mostrala. 
+                        // Nessun limite di orario, prendiamo tutto quello che passa il feed.
+                        const isRelevant = keywords.some(k => fullText.includes(k.toLowerCase()));
 
-                        if (isLocal && isRecent) {
+                        if (isRelevant) {
                             const div = document.createElement('div');
                             div.className = 'feed-item';
                             div.innerHTML = `
