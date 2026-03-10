@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <title>Info traffico e chiusure stradali</title>
     <style>
-        /* TEMA DARK DI BASE */
         :root {
             --bg-main: #0a0f18;
             --bg-card: #161e2e;
@@ -18,7 +17,6 @@
             --header-red: #450a0a;
         }
 
-        /* TEMA LIGHT AUTOMATICO (08:00 - 18:00) */
         body.light-mode {
             --bg-main: #f1f5f9;
             --bg-card: #ffffff;
@@ -54,16 +52,16 @@
         }
 
         header h1 { font-size: 1.6rem; text-transform: uppercase; margin: 0; color: var(--text-dim); }
-        .clock { font-size: 3.5rem; font-weight: 700; font-family: monospace; }
+        .clock { font-size: 3rem; font-weight: 700; font-family: monospace; }
         .logo-box { text-align: right; }
-        .logo-box img { max-height: 75px; width: auto; }
+        .logo-box img { max-height: 70px; width: auto; }
 
         main {
             display: grid;
             grid-template-columns: 480px 1fr;
             gap: 25px;
             height: 100%;
-            padding-bottom: 70px;
+            padding-bottom: 60px;
         }
 
         .panel {
@@ -80,7 +78,6 @@
             font-size: 1.1rem;
             font-weight: 900;
             text-transform: uppercase;
-            letter-spacing: 2px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -100,19 +97,17 @@
             padding: 25px;
             border-top: 2px solid var(--border);
         }
-        .detour span { font-size: 0.9rem; color: var(--text-dim); text-transform: uppercase; }
         .detour div { font-size: 2.4rem; font-weight: 900; color: var(--warning); margin-top: 5px; }
 
-        .feed-container { padding: 0 25px; overflow-y: auto; flex-grow: 1; }
+        .feed-container { padding: 0 25px; overflow-y: auto; }
         .feed-item { padding: 22px 0; border-bottom: 1px solid var(--border); }
-        .feed-item .item-title { color: var(--warning); font-weight: bold; font-size: 1.25rem; margin-bottom: 8px; }
-        .feed-item .item-desc { font-size: 1.1rem; line-height: 1.45; color: var(--text-bright); }
+        .feed-item .item-title { color: var(--warning); font-weight: bold; font-size: 1.2rem; margin-bottom: 8px; }
 
         .status-msg {
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100%;
+            height: 80%;
             padding: 40px;
             color: var(--success);
             font-size: 2.2rem;
@@ -120,8 +115,8 @@
             text-align: center;
         }
 
-        .footer-logo { position: absolute; bottom: 20px; right: 25px; }
-        .footer-logo img { max-height: 55px; width: auto; opacity: 0.9; }
+        .footer-logo { position: absolute; bottom: 25px; right: 25px; }
+        .footer-logo img { max-height: 60px; width: auto; opacity: 0.9; }
     </style>
 </head>
 <body>
@@ -152,10 +147,10 @@
         <div class="panel">
             <div class="panel-header header-bollettino">
                 <span>Bollettino CCISS</span>
-                <span id="last-update" style="font-weight: normal; font-size: 0.8rem; text-transform: none; opacity: 0.7;">Caricamento...</span>
+                <span id="last-update" style="font-weight: normal; font-size: 0.8rem; text-transform: none; opacity: 0.7;">Aggiornamento...</span>
             </div>
             <div id="feed" class="feed-container">
-                <div class="status-msg">Inizializzazione feed...</div>
+                <div class="status-msg">Caricamento in corso...</div>
             </div>
         </div>
     </main>
@@ -165,80 +160,78 @@
     </div>
 
     <script>
-        // TEMA AUTOMATICO (8-18 LIGHT)
-        function checkTime() {
+        function updateTheme() {
             const hour = new Date().getHours();
-            if (hour >= 8 && hour < 18) {
-                document.body.classList.add('light-mode');
-            } else {
-                document.body.classList.remove('light-mode');
-            }
+            document.body.classList.toggle('light-mode', hour >= 8 && hour < 18);
         }
 
         function updateClock() {
             const now = new Date();
             document.getElementById('clock').textContent = now.toLocaleTimeString('it-IT', { hour12: false });
-            checkTime();
+            updateTheme();
         }
         setInterval(updateClock, 1000);
         updateClock();
 
-        // FILTRO RSS MIGLIORATO
-        async function fetchTraffic() {
-            const container = document.getElementById('feed');
-            const statusLabel = document.getElementById('last-update');
+        // FILTRO RADICALE: Se la parola è nel testo, DEVE uscire.
+        async function fetchCCISS() {
+            const feedContainer = document.getElementById('feed');
+            const updateLabel = document.getElementById('last-update');
             
-            // Usiamo un proxy diverso per assicurarci di leggere il CCISS senza blocchi
+            // Usiamo allorigins per scaricare l'XML originale senza traduttori che fanno cache
             const rssUrl = "https://www.cciss.it/rss";
-            const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&t=${Date.now()}`;
+            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}&timestamp=${Date.now()}`;
 
             try {
-                const response = await fetch(apiUrl);
+                const response = await fetch(proxyUrl);
                 const data = await response.json();
                 
-                if (data.status === 'ok') {
-                    container.innerHTML = "";
-                    let foundCount = 0;
-                    
-                    const keys = ["varese", "gallarate", "busto", "castellanza", "saronno", "a8", "a36", "pedemontana", "malpensa", "besnate", "lainate", "vergiate", "gazzada"];
+                // Analizziamo l'XML grezzo
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(data.contents, "text/xml");
+                const items = xmlDoc.querySelectorAll("item");
 
-                    data.items.forEach(item => {
-                        const title = item.title || "";
-                        const desc = item.description || "";
-                        const fullText = (title + " " + desc).toLowerCase();
+                feedContainer.innerHTML = "";
+                let count = 0;
 
-                        // Controllo specifico: Varese o keywords locali
-                        // Usiamo una regex per VA isolato per evitare "vanno"
-                        const hasVarese = fullText.includes("varese");
-                        const hasVA = /\bva\b/.test(fullText);
-                        const hasOther = keys.some(k => fullText.includes(k));
+                const keywords = ["varese", "gallarate", "busto", "castellanza", "saronno", "a8", "a36", "pedemontana", "malpensa", "besnate", "lainate", "vergiate", "gazzada"];
 
-                        if (hasVarese || hasVA || hasOther) {
-                            const div = document.createElement('div');
-                            div.className = 'feed-item';
-                            div.innerHTML = `
-                                <div class="item-title">${title.toUpperCase()}</div>
-                                <div class="item-desc">${desc}</div>
-                            `;
-                            container.appendChild(div);
-                            foundCount++;
-                        }
-                    });
+                items.forEach(item => {
+                    const title = item.querySelector("title")?.textContent || "";
+                    const desc = item.querySelector("description")?.textContent || "";
+                    const fullText = (title + " " + desc).toLowerCase();
 
-                    if (foundCount === 0) {
-                        container.innerHTML = '<div class="status-msg">Nessuna nuova segnalazione per l\'area della Provincia di Varese</div>';
+                    // Controllo Varese ovunque e sigla VA isolata
+                    const hasVarese = fullText.indexOf("varese") !== -1;
+                    const hasSiglaVA = /\bva\b/.test(fullText);
+                    const hasKeywords = keywords.some(k => fullText.indexOf(k) !== -1);
+
+                    if (hasVarese || hasSiglaVA || hasKeywords) {
+                        const div = document.createElement('div');
+                        div.className = 'feed-item';
+                        div.innerHTML = `
+                            <div class="item-title">${title.toUpperCase()}</div>
+                            <div class="item-desc">${desc}</div>
+                        `;
+                        feedContainer.appendChild(div);
+                        count++;
                     }
-                    
-                    const d = new Date();
-                    statusLabel.textContent = "Aggiornato: " + d.getHours() + ":" + d.getMinutes().toString().padStart(2, '0');
+                });
+
+                if (count === 0) {
+                    feedContainer.innerHTML = '<div class="status-msg">Nessuna nuova segnalazione per l\'area della Provincia di Varese</div>';
                 }
-            } catch (e) {
-                statusLabel.textContent = "Errore connessione";
+                
+                const d = new Date();
+                updateLabel.textContent = "Aggiornato: " + d.getHours() + ":" + d.getMinutes().toString().padStart(2, '0');
+
+            } catch (error) {
+                updateLabel.textContent = "Errore connessione";
             }
         }
 
-        fetchTraffic();
-        setInterval(fetchTraffic, 300000); // Ogni 5 minuti
+        fetchCCISS();
+        setInterval(fetchCCISS, 300000);
     </script>
 </body>
 </html>
