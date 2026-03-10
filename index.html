@@ -41,6 +41,7 @@
             gap: 25px;
             overflow: hidden;
             position: relative;
+            transition: background-color 0.4s;
         }
 
         header {
@@ -61,7 +62,7 @@
             grid-template-columns: 480px 1fr;
             gap: 25px;
             height: 100%;
-            padding-bottom: 70px;
+            padding-bottom: 60px;
         }
 
         .panel {
@@ -97,13 +98,11 @@
             padding: 25px;
             border-top: 2px solid var(--border);
         }
-        .detour span { font-size: 0.9rem; color: var(--text-dim); text-transform: uppercase; }
         .detour div { font-size: 2.4rem; font-weight: 900; color: var(--warning); margin-top: 5px; }
 
         .feed-container { padding: 0 25px; overflow-y: auto; }
         .feed-item { padding: 22px 0; border-bottom: 1px solid var(--border); }
         .feed-item .item-title { color: var(--warning); font-weight: bold; font-size: 1.2rem; margin-bottom: 8px; }
-        .feed-item .item-desc { font-size: 1.1rem; line-height: 1.45; color: var(--text-bright); }
 
         .status-msg {
             display: flex;
@@ -152,7 +151,7 @@
                 <span id="last-update" style="font-weight: normal; font-size: 0.8rem; opacity: 0.7;">Connessione...</span>
             </div>
             <div id="feed" class="feed-container">
-                <div id="status-display" class="status-msg">In attesa di dati dal server...</div>
+                <div id="status-display" class="status-msg">Inizializzazione feed...</div>
             </div>
         </div>
     </main>
@@ -175,61 +174,54 @@
         setInterval(updateClock, 1000);
         updateClock();
 
-        // FILTRO CCISS
         async function fetchCCISS() {
             const feedContainer = document.getElementById('feed');
-            const statusDisplay = document.getElementById('status-display');
             const updateLabel = document.getElementById('last-update');
+            const statusDisplay = document.getElementById('status-display');
             
-            // Usiamo RSS2JSON, molto più affidabile per i browser
+            // Usiamo il ponte RSS2JSON che solitamente è il più trasparente
             const rssUrl = "https://www.cciss.it/rss";
-            const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&nocache=${Date.now()}`;
+            const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&t=${Date.now()}`;
 
             try {
-                updateLabel.textContent = "Richiesta inviata...";
                 const response = await fetch(apiUrl);
+                if (!response.ok) throw new Error();
                 const data = await response.json();
                 
                 if (data.status === 'ok') {
                     feedContainer.innerHTML = "";
-                    let count = 0;
-                    const keywords = ["varese", "gallarate", "busto", "castellanza", "saronno", "a8", "a36", "pedemontana", "malpensa", "besnate", "lainate", "vergiate", "gazzada"];
+                    let found = 0;
+                    
+                    // PAROLE CHIAVE INFALLIBILI
+                    const keywords = ["varese", "gallarate", "busto", "castellanza", "saronno", "a8", "a36", "pedemontana", "malpensa"];
 
                     data.items.forEach(item => {
-                        const title = (item.title || "");
-                        const desc = (item.description || "");
-                        const fullText = (title + " " + desc).toLowerCase();
+                        const title = item.title || "";
+                        const desc = item.description || "";
+                        const txt = (title + " " + desc).toLowerCase();
 
-                        // Controllo Varese o keywords (con filtro VA isolato)
-                        const hasVarese = fullText.includes("varese");
-                        const hasKeywords = keywords.some(k => fullText.includes(k));
-                        const hasVA = /\bva\b/.test(fullText);
+                        // SE VEDE "VARESE" (O ALTRE KEY) LO PRENDE SENZA SE E SENZA MA
+                        const match = keywords.some(k => txt.indexOf(k) !== -1) || /\bva\b/.test(txt);
 
-                        if (hasVarese || hasKeywords || hasVA) {
+                        if (match) {
                             const div = document.createElement('div');
                             div.className = 'feed-item';
-                            div.innerHTML = `
-                                <div class="item-title">${title.toUpperCase()}</div>
-                                <div class="item-desc">${desc}</div>
-                            `;
+                            div.innerHTML = `<div class="item-title">${title.toUpperCase()}</div><div class="item-desc">${desc}</div>`;
                             feedContainer.appendChild(div);
-                            count++;
+                            found++;
                         }
                     });
 
-                    if (count === 0) {
+                    if (found === 0) {
                         feedContainer.innerHTML = '<div class="status-msg">Nessuna nuova segnalazione per l\'area della Provincia di Varese</div>';
                     }
                     
                     const d = new Date();
                     updateLabel.textContent = "Aggiornato: " + d.getHours() + ":" + d.getMinutes().toString().padStart(2, '0');
-                } else {
-                    throw new Error("Dati non validi");
                 }
-            } catch (error) {
-                console.error(error);
+            } catch (e) {
                 updateLabel.textContent = "Errore Connessione";
-                statusDisplay.innerHTML = "ERRORE DI RETE<br><small style='font-size:1rem; color:red;'>Verificare connessione internet o firewall</small>";
+                statusDisplay.innerHTML = "CONTROLLARE CONNESSIONE INTERNET";
             }
         }
 
