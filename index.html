@@ -5,27 +5,27 @@
     <title>Info traffico e chiusure stradali</title>
     <style>
         :root {
-            --bg-body: #0f172a;        /* Blu scuro professionale */
-            --bg-card: #1e293b;        /* Slate blu per i riquadri */
-            --border-color: #334155;
-            --accent-yellow: #facc15;  /* Giallo per evidenze */
-            --accent-red: #ef4444;     /* Rosso per chiusure */
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
+            --bg-main: #0a0f18;
+            --bg-card: #161e2e;
+            --border: #2d3748;
+            --text-bright: #f8fafc;
+            --text-dim: #94a3b8;
+            --danger: #e11d48;
+            --warning: #fbbf24;
         }
 
         * { box-sizing: border-box; }
         
         body {
-            background-color: var(--bg-body);
-            color: var(--text-main);
-            font-family: 'Inter', -apple-system, sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-bright);
+            font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
             margin: 0;
-            padding: 20px;
+            padding: 25px;
             height: 100vh;
             display: grid;
-            grid-template-rows: 80px 1fr;
-            gap: 20px;
+            grid-template-rows: 90px 1fr;
+            gap: 25px;
             overflow: hidden;
         }
 
@@ -34,136 +34,117 @@
             display: grid;
             grid-template-columns: 1fr auto 1fr;
             align-items: center;
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 10px;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 15px;
         }
 
         header h1 {
-            font-size: 1.5rem;
+            font-size: 1.6rem;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
+            letter-spacing: 1px;
             margin: 0;
-            color: var(--text-muted);
+            color: var(--text-dim);
         }
 
         .clock {
-            font-size: 2.5rem;
-            font-weight: 600;
-            font-variant-numeric: tabular-nums;
+            font-size: 3rem;
+            font-weight: 700;
+            font-family: monospace;
         }
 
-        .logo-container {
-            text-align: right;
-        }
-
-        .logo-container img {
-            max-height: 60px;
-            width: auto;
-        }
+        .logo-box { text-align: right; }
+        .logo-box img { max-height: 70px; width: auto; }
 
         /* MAIN CONTENT */
         main {
             display: grid;
-            grid-template-columns: 450px 1fr;
-            gap: 20px;
+            grid-template-columns: 480px 1fr;
+            gap: 25px;
             height: 100%;
         }
 
-        .card {
+        .panel {
             background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
             display: flex;
             flex-direction: column;
             overflow: hidden;
         }
 
-        .card-header {
+        .panel-header {
             padding: 15px 20px;
-            background: rgba(0,0,0,0.2);
-            border-bottom: 1px solid var(--border-color);
-            font-size: 0.9rem;
+            background: rgba(0, 0, 0, 0.3);
+            border-bottom: 1px solid var(--border);
+            font-size: 0.85rem;
             font-weight: bold;
             text-transform: uppercase;
-            color: var(--text-muted);
-            display: flex;
-            justify-content: space-between;
+            color: var(--text-dim);
         }
 
-        /* COLONNA CHIUSURA FISSA */
+        /* COLONNA FISSA (SINISTRA) */
         .fixed-alert {
-            border-left: 6px solid var(--accent-red);
             padding: 30px;
+            border-left: 8px solid var(--danger);
         }
 
         .fixed-alert .title {
-            color: var(--accent-red);
-            font-size: 1.4rem;
+            color: var(--danger);
+            font-size: 1.6rem;
             font-weight: 800;
             margin-bottom: 20px;
         }
 
-        .fixed-alert .content {
-            font-size: 1.25rem;
-            line-height: 1.6;
+        .fixed-alert .body-text {
+            font-size: 1.3rem;
+            line-height: 1.5;
         }
 
-        .highlight {
-            color: var(--accent-yellow);
-            font-weight: 600;
-        }
+        .highlight { color: var(--warning); font-weight: bold; }
 
-        .advice-box {
+        .detour {
             margin-top: auto;
-            border-top: 1px solid var(--border-color);
-            padding-top: 20px;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 25px;
+            border-top: 1px solid var(--border);
         }
 
-        .advice-box small {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-        }
+        .detour span { font-size: 0.9rem; color: var(--text-dim); text-transform: uppercase; }
+        .detour div { font-size: 2.2rem; font-weight: 800; color: var(--warning); margin-top: 5px; }
 
-        .advice-box div {
-            font-size: 2rem;
-            font-weight: 800;
-            color: var(--accent-yellow);
-        }
-
-        /* COLONNA FEED DINAMICO */
+        /* COLONNA DINAMICA (DESTRA) */
         .feed-container {
-            padding: 0 20px;
+            padding: 0 25px;
             overflow-y: auto;
         }
 
         .feed-item {
             padding: 20px 0;
-            border-bottom: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border);
         }
 
         .feed-item:last-child { border-bottom: none; }
 
         .feed-item .item-title {
-            color: var(--accent-yellow);
+            color: var(--warning);
             font-weight: bold;
             font-size: 1.1rem;
-            margin-bottom: 8px;
+            margin-bottom: 5px;
         }
 
         .feed-item .item-desc {
-            font-size: 1rem;
+            font-size: 1.05rem;
             line-height: 1.4;
             color: #cbd5e1;
         }
 
-        .status-ok {
+        .status-msg {
             display: flex;
-            align-items: center;
             justify-content: center;
+            align-items: center;
             height: 100%;
-            color: var(--text-muted);
-            font-size: 1.1rem;
+            color: var(--text-dim);
+            font-style: italic;
         }
     </style>
 </head>
@@ -172,33 +153,33 @@
     <header>
         <h1>Info traffico e chiusure stradali</h1>
         <div id="clock" class="clock">00:00:00</div>
-        <div class="logo-container">
-            <img src="logo.png" alt="Logo Sede" onerror="this.style.display='none'">
+        <div class="logo-box">
+            <img src="logo.png" alt="Logo" onerror="this.style.display='none'">
         </div>
     </header>
 
     <main>
-        <div class="card">
-            <div class="card-header">Chiusura Programmata</div>
+        <div class="panel">
+            <div class="panel-header">Segnalazione Permanente</div>
             <div class="fixed-alert">
                 <div class="title">A8 GALLARATE - ENTRATA CHIUSA</div>
-                <div class="content">
+                <div class="body-text">
                     Entrata chiusa dalle ore <span class="highlight">21:00</span> del <span class="highlight">23/02/2026</span> alle ore <span class="highlight">05:00</span> del <span class="highlight">24/06/2026</span> in direzione Milano per lavori.
                 </div>
-                <div class="advice-box">
-                    <small>Entrata consigliata verso Milano</small>
-                    <div>Busto Arsizio</div>
-                </div>
+            </div>
+            <div class="detour">
+                <span>Entrata consigliata verso Milano</span>
+                <div>Busto Arsizio</div>
             </div>
         </div>
 
-        <div class="card">
-            <div class="card-header">
-                <span>Segnalazioni Rete Locale (A8 - A36)</span>
-                <span id="refresh-status" style="font-weight: normal; opacity: 0.6;">Aggiornamento...</span>
+        <div class="panel">
+            <div class="panel-header" style="display: flex; justify-content: space-between;">
+                <span>Bollettino CCISS - Provincia di Varese</span>
+                <span id="last-update" style="font-weight: normal; text-transform: none;">Aggiornamento in corso...</span>
             </div>
             <div id="feed" class="feed-container">
-                <div class="status-ok">Caricamento bollettino viabilità...</div>
+                <div class="status-msg">In attesa di dati dal CCISS...</div>
             </div>
         </div>
     </main>
@@ -212,52 +193,56 @@
         setInterval(updateClock, 1000);
         updateClock();
 
-        // Recupero Traffico
-        const keys = ["Varese", "A8", "Gallarate", "Busto", "Castellanza", "Legnano", "Saronno", "A36", "Pedemontana", "Malpensa", "Besnate", "Lainate"];
+        // Filtri Geografici per Provincia di Varese e Autostrade locali
+        const keywords = ["Varese", "A8", "Gallarate", "Busto", "Castellanza", "Legnano", "Saronno", "A36", "Pedemontana", "Malpensa", "Besnate", "Lainate", "Vergiate"];
 
-        async function fetchTraffic() {
-            const feed = document.getElementById('feed');
-            const status = document.getElementById('refresh-status');
+        async function fetchCCISS() {
+            const feedContainer = document.getElementById('feed');
+            const updateLabel = document.getElementById('last-update');
             
-            // Utilizzo di rss2json per bypassare blocchi CORS in modo pulito e professionale
-            const rss = "https://www.autostrade.it/autostrade-gis/rss.do?tronco=A8";
-            const api = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rss)}`;
+            // Usiamo rss2json per convertire l'RSS del CCISS in formato leggibile dal browser senza errori di protezione
+            const rssUrl = "https://www.cciss.it/rss";
+            const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
 
             try {
-                const response = await fetch(api);
+                const response = await fetch(apiUrl);
                 const data = await response.json();
                 
                 if (data.status === 'ok') {
-                    feed.innerHTML = "";
+                    feedContainer.innerHTML = "";
                     let count = 0;
 
                     data.items.forEach(item => {
                         const content = (item.title + " " + item.description).toLowerCase();
-                        if (keys.some(k => content.includes(k.toLowerCase())) && count < 8) {
+                        
+                        // Applichiamo il filtro per la tua zona
+                        if (keywords.some(k => content.includes(k.toLowerCase())) && count < 10) {
                             const div = document.createElement('div');
                             div.className = 'feed-item';
                             div.innerHTML = `
                                 <div class="item-title">${item.title.toUpperCase()}</div>
                                 <div class="item-desc">${item.description}</div>
                             `;
-                            feed.appendChild(div);
+                            feedContainer.appendChild(div);
                             count++;
                         }
                     });
 
                     if (count === 0) {
-                        feed.innerHTML = '<div class="status-ok">Nessuna segnalazione di rilievo sulla rete locale.</div>';
+                        feedContainer.innerHTML = '<div class="status-msg">Nessuna criticità segnalata dal CCISS per l\'area di Varese.</div>';
                     }
-                    const now = new Date();
-                    status.textContent = "Ultimo agg: " + now.getHours() + ":" + now.getMinutes().toString().padStart(2, '0');
+                    
+                    const d = new Date();
+                    updateLabel.textContent = "Ultimo agg: " + d.getHours() + ":" + d.getMinutes().toString().padStart(2, '0');
                 }
-            } catch (e) {
-                status.textContent = "Errore connessione";
+            } catch (error) {
+                updateLabel.textContent = "Errore di connessione";
             }
         }
 
-        fetchTraffic();
-        setInterval(fetchTraffic, 300000); // Ogni 5 minuti
+        // Caricamento iniziale e refresh ogni 5 minuti
+        fetchCCISS();
+        setInterval(fetchCCISS, 300000);
     </script>
 </body>
 </html>
