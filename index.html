@@ -12,6 +12,7 @@
             --text-dim: #94a3b8;
             --danger: #e11d48;
             --warning: #fbbf24;
+            --success: #4ade80;
         }
 
         * { box-sizing: border-box; }
@@ -30,7 +31,7 @@
             position: relative;
         }
 
-        /* HEADER */
+        /* HEADER SUPERIORE */
         header {
             display: grid;
             grid-template-columns: 1fr auto 1fr;
@@ -62,43 +63,57 @@
             grid-template-columns: 480px 1fr;
             gap: 25px;
             height: 100%;
-            padding-bottom: 60px; /* Spazio per il logo in basso */
+            padding-bottom: 60px;
         }
 
         .panel {
             background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 4px;
+            border: 2px solid var(--border);
+            border-radius: 6px;
             display: flex;
             flex-direction: column;
             overflow: hidden;
         }
 
+        /* RISALTO TESTATE PANNELLI */
         .panel-header {
-            padding: 15px 20px;
-            background: rgba(0, 0, 0, 0.3);
-            border-bottom: 1px solid var(--border);
-            font-size: 0.85rem;
-            font-weight: bold;
+            padding: 18px 25px;
+            font-size: 1.1rem;
+            font-weight: 900;
             text-transform: uppercase;
-            color: var(--text-dim);
+            letter-spacing: 2px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-permanente {
+            background: #450a0a; /* Sfondo rosso scuro */
+            color: #ff8080;
+            border-bottom: 3px solid var(--danger);
+        }
+
+        .header-bollettino {
+            background: #1e293b; /* Sfondo blu metallico */
+            color: var(--warning);
+            border-bottom: 3px solid var(--warning);
         }
 
         /* COLONNA FISSA */
         .fixed-alert {
             padding: 30px;
-            border-left: 8px solid var(--danger);
+            border-left: 10px solid var(--danger);
         }
 
         .fixed-alert .title {
             color: var(--danger);
-            font-size: 1.6rem;
+            font-size: 1.65rem;
             font-weight: 800;
             margin-bottom: 20px;
         }
 
         .fixed-alert .body-text {
-            font-size: 1.3rem;
+            font-size: 1.35rem;
             line-height: 1.5;
         }
 
@@ -106,13 +121,13 @@
 
         .detour {
             margin-top: auto;
-            background: rgba(255, 255, 255, 0.03);
+            background: rgba(255, 255, 255, 0.05);
             padding: 25px;
-            border-top: 1px solid var(--border);
+            border-top: 2px solid var(--border);
         }
 
         .detour span { font-size: 0.9rem; color: var(--text-dim); text-transform: uppercase; }
-        .detour div { font-size: 2.2rem; font-weight: 800; color: var(--warning); margin-top: 5px; }
+        .detour div { font-size: 2.4rem; font-weight: 900; color: var(--warning); margin-top: 5px; }
 
         /* COLONNA DINAMICA */
         .feed-container {
@@ -121,42 +136,46 @@
         }
 
         .feed-item {
-            padding: 20px 0;
+            padding: 22px 0;
             border-bottom: 1px solid var(--border);
         }
 
         .feed-item .item-title {
             color: var(--warning);
             font-weight: bold;
-            font-size: 1.1rem;
-            margin-bottom: 5px;
+            font-size: 1.2rem;
+            margin-bottom: 8px;
         }
 
         .feed-item .item-desc {
-            font-size: 1.05rem;
-            line-height: 1.4;
-            color: #cbd5e1;
+            font-size: 1.1rem;
+            line-height: 1.45;
+            color: #e2e8f0;
         }
 
+        /* RISALTO MESSAGGIO "NESSUNA SEGNALAZIONE" */
         .status-msg {
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100%;
-            color: var(--text-dim);
-            font-style: italic;
+            height: 80%;
+            padding: 40px;
+            color: var(--success);
+            font-size: 2.2rem; /* Molto più grande */
+            font-weight: 700;
+            text-align: center;
+            line-height: 1.3;
         }
 
-        /* LOGO CCISS IN BASSO */
         .footer-logo {
             position: absolute;
             bottom: 25px;
             right: 25px;
-            opacity: 0.8;
+            opacity: 0.9;
         }
 
         .footer-logo img {
-            max-height: 50px;
+            max-height: 60px;
             width: auto;
         }
     </style>
@@ -173,7 +192,7 @@
 
     <main>
         <div class="panel">
-            <div class="panel-header">Segnalazione Permanente</div>
+            <div class="panel-header header-permanente">Segnalazione Permanente</div>
             <div class="fixed-alert">
                 <div class="title">A8 GALLARATE - ENTRATA CHIUSA</div>
                 <div class="body-text">
@@ -187,9 +206,9 @@
         </div>
 
         <div class="panel">
-            <div class="panel-header" style="display: flex; justify-content: space-between;">
+            <div class="panel-header header-bollettino">
                 <span>Bollettino CCISS (Ultime 3 Ore)</span>
-                <span id="last-update" style="font-weight: normal; text-transform: none;">Aggiornamento...</span>
+                <span id="last-update" style="font-weight: normal; font-size: 0.8rem; text-transform: none; opacity: 0.7;">Aggiornamento...</span>
             </div>
             <div id="feed" class="feed-container">
                 <div class="status-msg">Ricerca segnalazioni CCISS...</div>
@@ -209,8 +228,7 @@
         setInterval(updateClock, 1000);
         updateClock();
 
-        // FILTRO OTTIMIZZATO
-        const keywords = ["Varese", "VA", "A8", "Gallarate", "Busto", "Castellanza", "Saronno", "Pedemontana", "A36", "Malpensa", "Besnate", "Lainate", "Vergiate", "Gazzada", "Buguggiate"];
+        const keywords = ["Varese", "VA", "A8", "Gallarate", "Busto", "Castellanza", "Saronno", "Pedemontana", "A36", "Malpensa", "Besnate", "Lainate", "Vergiate", "Gazzada", "Buguggiate", "Castiglione"];
 
         async function fetchCCISS() {
             const feedContainer = document.getElementById('feed');
@@ -232,10 +250,7 @@
                         const content = (item.title + " " + item.description).toLowerCase();
                         const dataPub = new Date(item.pubDate.replace(/-/g, "/")).getTime();
                         
-                        // Controllo 1: Il contenuto riguarda la nostra zona?
                         const isLocal = keywords.some(k => content.includes(k.toLowerCase()));
-                        
-                        // Controllo 2: La segnalazione è delle ultime 3 ore?
                         const isRecent = (adesso - dataPub) < treOreInMs;
 
                         if (isLocal && isRecent) {
@@ -251,7 +266,7 @@
                     });
 
                     if (count === 0) {
-                        feedContainer.innerHTML = '<div class="status-msg">Nessuna segnalazione rilevata nelle ultime 3 ore per la zona di Varese.</div>';
+                        feedContainer.innerHTML = '<div class="status-msg">Nessuna nuova segnalazione per l\'area della Provincia di Varese</div>';
                     }
                     
                     const d = new Date();
@@ -263,7 +278,7 @@
         }
 
         fetchCCISS();
-        setInterval(fetchCCISS, 300000); // 5 minuti
+        setInterval(fetchCCISS, 300000);
     </script>
 </body>
 </html>
