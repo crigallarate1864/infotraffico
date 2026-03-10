@@ -5,7 +5,7 @@
     <title>SISTEMA MONITORAGGIO VIABILITÀ</title>
     <style>
         :root {
-            /* TEMA DARK */
+            /* TEMA DARK (18:00 - 08:00) */
             --bg-main: #0a0f18; --bg-card: #161e2e; --border: #2d3748;
             --text-bright: #f8fafc; --text-dim: #94a3b8;
             --danger: #e11d48; --warning: #fbbf24; --success: #4ade80;
@@ -22,7 +22,7 @@
         * { box-sizing: border-box; }
         body {
             background-color: var(--bg-main); color: var(--text-bright);
-            font-family: 'Segoe UI', Tahoma, Helvetica, sans-serif; margin: 0; padding: 25px;
+            font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; padding: 25px;
             height: 100vh; display: grid; grid-template-rows: 90px 1fr; gap: 25px; overflow: hidden;
             transition: background 0.4s;
         }
@@ -41,8 +41,9 @@
         .header-permanente { background: var(--header-red); color: var(--danger); border-bottom: 4px solid var(--danger); }
         .header-bollettino { background: var(--header-dark); color: var(--warning); border-bottom: 4px solid var(--warning); }
 
+        /* SINISTRA: FISSO GALLARATE */
         .fixed-alert { padding: 35px; border-left: 12px solid var(--danger); }
-        .fixed-alert .title { color: var(--danger); font-size: 1.8rem; font-weight: 800; margin-bottom: 25px; }
+        .fixed-alert .title { color: var(--danger); font-size: 1.7rem; font-weight: 800; margin-bottom: 25px; }
         .fixed-alert .body-text { font-size: 1.4rem; line-height: 1.5; font-weight: bold; }
         .highlight { color: var(--warning); font-weight: 900; }
 
@@ -50,21 +51,23 @@
         .detour span { font-size: 1rem; color: var(--text-dim); text-transform: uppercase; }
         .detour div { font-size: 2.8rem; font-weight: 900; color: var(--warning); margin-top: 10px; }
 
+        /* DESTRA: FEED DINAMICO */
         .feed-container { padding: 0 30px; overflow-y: auto; flex-grow: 1; }
         .feed-item { padding: 25px 0; border-bottom: 1px solid var(--border); }
-        .item-title { color: var(--warning); font-weight: 800; font-size: 1.3rem; margin-bottom: 10px; text-transform: uppercase; }
-        .item-desc { font-size: 1.2rem; line-height: 1.4; color: var(--text-bright); }
+        .feed-item:last-child { border-bottom: none; }
+        .item-title { color: var(--warning); font-weight: 800; font-size: 1.4rem; margin-bottom: 12px; text-transform: uppercase; line-height: 1.2; }
+        .item-desc { font-size: 1.25rem; line-height: 1.5; color: var(--text-bright); }
 
-        .status-msg { display: flex; justify-content: center; align-items: center; height: 100%; padding: 40px; color: var(--success); font-size: 2.5rem; font-weight: 800; text-align: center; line-height: 1.3; }
+        .status-msg { display: flex; justify-content: center; align-items: center; height: 100%; padding: 40px; color: var(--success); font-size: 2.4rem; font-weight: 800; text-align: center; line-height: 1.3; }
 
-        .footer-logo { position: absolute; bottom: 25px; right: 25px; opacity: 1; }
-        .footer-logo img { max-height: 60px; width: auto; }
+        .footer-logo { position: absolute; bottom: 25px; right: 25px; }
+        .footer-logo img { max-height: 60px; width: auto; opacity: 1; }
     </style>
 </head>
 <body>
 
     <header>
-        <h1 style="font-size: 1.4rem; color: var(--text-dim); margin:0;">INFO VIABILITÀ SEDE</h1>
+        <h1 style="font-size: 1.4rem; color: var(--text-dim); margin:0;">SISTEMA MONITORAGGIO VIABILITÀ</h1>
         <div id="clock" class="clock">00:00:00</div>
         <div class="logo-box">
             <img src="logo.png" alt="" onerror="this.style.display='none'">
@@ -88,7 +91,7 @@
 
         <div class="panel">
             <div class="panel-header header-bollettino">
-                <span>Bollettino CCISS - Provincia di Varese</span>
+                <span>Bollettino CCISS - Provincia di VA / Legnano</span>
                 <span id="sync-status" style="font-size: 0.8rem; font-weight: normal; opacity: 0.6;">Sincronizzazione...</span>
             </div>
             <div id="feed" class="feed-container">
@@ -117,63 +120,68 @@
         setInterval(updateClock, 1000);
         updateClock();
 
-        const keywords = ["varese", "gallarate", "busto", "castellanza", "saronno", "a8", "a36", "pedemontana", "malpensa", "besnate", "lainate", "vergiate", "gazzada"];
+        // Database parole chiave Provincia di Varese + Legnano
+        const keywords = [
+            "varese", "legnano", "gallarate", "busto arsizio", "busto a.", "castellanza", 
+            "saronno", "a8", "a36", "pedemontana", "malpensa", "besnate", "lainate", 
+            "vergiate", "gazzada", "buguggiate", "somma lombardo", "tradate", 
+            "induno olona", "arcisate", "luino", "azzate", "cavaria", "solbiate", 
+            "olgiate", "fagnano", "mornago", "jerago"
+        ];
 
         async function fetchFromSheets() {
             const container = document.getElementById('feed');
             const sync = document.getElementById('sync-status');
             
             try {
-                // Aggiungiamo timestamp per evitare cache di sistema
                 const response = await fetch(SHEET_CSV_URL + '&t=' + Date.now());
                 const csvData = await response.text();
                 
-                // Parser CSV che gestisce le virgolette di Google Sheets
                 const lines = csvData.split('\n');
                 container.innerHTML = "";
                 let found = 0;
 
-                // Saltiamo la prima riga se contiene intestazioni (opzionale)
                 for (let i = 0; i < lines.length; i++) {
                     const line = lines[i].trim();
                     if (!line) continue;
 
-                    // Regex per dividere correttamente le colonne del CSV di Google
-                    const columns = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
-                    if (!columns || columns.length < 2) continue;
+                    // Regex per gestire correttamente il CSV con virgolette e virgole interne
+                    const matches = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
+                    if (!matches || matches.length < 2) continue;
 
-                    const title = columns[0].replace(/^"|"$/g, '');
-                    const desc = columns[1].replace(/^"|"$/g, '');
+                    const title = matches[0].replace(/^"|"$/g, '');
+                    const desc = matches[1].replace(/^"|"$/g, '');
                     const fullText = (title + " " + desc).toLowerCase();
 
-                    // Filtro Varese (aggressivo) e Filtro VA (parola isolata)
-                    const isVarese = fullText.includes("varese");
-                    const hasKey = keywords.some(k => fullText.includes(k));
+                    // Controllo corrispondenza (Keyword provincia o sigla VA isolata)
+                    const isLocal = keywords.some(k => fullText.includes(k));
                     const isVA = /\bva\b/i.test(fullText);
 
-                    if (isVarese || hasKey || isVA) {
+                    if (isLocal || isVA) {
                         const div = document.createElement('div');
                         div.className = 'feed-item';
-                        div.innerHTML = `<div class="item-title">${title.toUpperCase()}</div><div class="item-desc">${desc}</div>`;
+                        div.innerHTML = `
+                            <div class="item-title">${title.toUpperCase()}</div>
+                            <div class="item-desc">${desc}</div>
+                        `;
                         container.appendChild(div);
                         found++;
                     }
                 }
 
                 if (found === 0) {
-                    container.innerHTML = '<div class="status-msg">Nessuna nuova segnalazione per l\'area della Provincia di Varese</div>';
+                    container.innerHTML = '<div class="status-msg">Nessuna nuova segnalazione per l\'area della Provincia di Varese e Legnano</div>';
                 }
                 sync.textContent = "LIVE - " + new Date().toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'});
 
             } catch (e) {
-                sync.textContent = "ERRORE SINCRONIZZAZIONE";
-                console.error("Errore fetch:", e);
+                sync.textContent = "ERRORE CONNESSIONE";
+                console.error(e);
             }
         }
 
-        // Avvio immediato e refresh ogni 3 minuti
         fetchFromSheets();
-        setInterval(fetchFromSheets, 180000);
+        setInterval(fetchFromSheets, 180000); // Refresh ogni 3 minuti
     </script>
 </body>
 </html>
