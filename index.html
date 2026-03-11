@@ -16,7 +16,6 @@
             --bg-main: #f8fafc; --bg-card: #ffffff; --border: #cbd5e1;
             --text-bright: #0f172a; --text-dim: #475569;
             --header-dark: #e2e8f0; --header-red: #fee2e2;
-            /* Sostituzione giallo con Ambra Scuro per leggibilità */
             --warning: #b45309; 
             --success: #15803d;
         }
@@ -123,8 +122,17 @@
             border-radius: 10px;
             padding: 20px;
             margin-bottom: 20px;
+            position: relative;
         }
         body.light-mode .feed-item { background: #fcfcfc; }
+        
+        /* Stile per notizie persistenti (in coda) */
+        .feed-item.persistent { opacity: 0.7; border-style: dashed; }
+        .persistent-tag { 
+            position: absolute; top: 10px; right: 10px; 
+            font-size: 0.7rem; font-weight: bold; color: var(--text-dim); 
+            text-transform: uppercase;
+        }
 
         .item-title { color: var(--warning); font-weight: 800; font-size: 1.5rem; margin-bottom: 10px; text-transform: uppercase; border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 5px; }
         .item-desc { font-size: 1.4rem; line-height: 1.5; color: var(--text-bright); }
@@ -187,6 +195,7 @@
     <script>
         const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTQD7mYVjhrw9Ma3t_av071IGSDcaLoyojD55ZoOc-LuMIkT5OHWKwS93LQhVJCOGVHBJsG9Kyd2sXK/pub?output=csv';
         const PROXY = "https://corsproxy.io/?";
+        const MEMORY_TIME = 3 * 60 * 60 * 1000; // 3 ore in millisecondi
 
         function updateClock() {
             const now = new Date();
@@ -194,7 +203,6 @@
             document.getElementById('date-box').textContent = now.toLocaleDateString('it-IT', optionsDate);
             document.getElementById('clock').textContent = now.toLocaleTimeString('it-IT', { hour12: false });
             
-            // Attivazione Light Mode 08:00 - 18:00
             const hour = now.getHours();
             document.body.classList.toggle('light-mode', hour >= 8 && hour < 18);
         }
@@ -217,15 +225,20 @@
             return rows;
         }
 
+        // --- NUOVA LOGICA DI MEMORIA ---
         async function fetchFromSheets() {
             const container = document.getElementById('feed');
             const syncStatus = document.getElementById('sync-status');
+            const oraAttuale = Date.now();
+
             try {
-                const response = await fetch(PROXY + encodeURIComponent(CSV_URL + '&t=' + Date.now()));
+                const response = await fetch(PROXY + encodeURIComponent(CSV_URL + '&t=' + oraAttuale));
                 const csvData = await response.text();
                 const rows = parseCSV(csvData);
-                let contentHTML = "";
-                let count = 0;
+                
+                // Carica memoria precedente
+                let memoria = JSON.parse(localStorage.getItem('traffico_memoria') || '{}');
+                let seguitiInQuestoFetch = new Set();
 
                 rows.forEach(cols => {
                     if (cols.length >= 3) {
@@ -233,15 +246,53 @@
                         const desc = cols[2].trim();
                         const full = (title + " " + desc).toLowerCase();
                         const match = keywords.some(k => full.includes(k)) || /\bva\b/i.test(full);
+                        
                         if (match) {
-                            contentHTML += `<div class="feed-item"><div class="item-title">${title.toUpperCase()}</div><div class="item-desc">${desc}</div></div>`;
-                            count++;
+                            const id = title + desc; // ID univoco basato sul contenuto
+                            memoria[id] = {
+                                title: title,
+                                desc: desc,
+                                lastSeen: oraAttuale,
+                                attivo: true
+                            };
+                            seguitiInQuestoFetch.add(id);
                         }
                     }
                 });
-                container.innerHTML = count > 0 ? contentHTML : '<div class="status-msg">NESSUNA CRITICITÀ RILEVATA</div>';
+
+                // Gestione scadenza e stato
+                let htmlAttivi = "";
+                let htmlPersistenti = "";
+                let nuoviDatiMemoria = {};
+
+                for (let id in memoria) {
+                    const item = memoria[id];
+                    const tempoTrascorso = oraAttuale - item.lastSeen;
+
+                    if (tempoTrascorso < MEMORY_TIME) {
+                        const isAncoraInCSV = seguitiInQuestoFetch.has(id);
+                        
+                        if (isAncoraInCSV) {
+                            htmlAttivi += `<div class="feed-item"><div class="item-title">${item.title.toUpperCase()}</div><div class="item-desc">${item.desc}</div></div>`;
+                        } else {
+                            htmlPersistenti += `<div class="feed-item persistent"><div class="persistent-tag">Segnalazione Precedente</div><div class="item-title">${item.title.toUpperCase()}</div><div class="item-desc">${item.desc}</div></div>`;
+                        }
+                        
+                        // Mantieni nella memoria per il prossimo ciclo
+                        nuoviDatiMemoria[id] = item;
+                    }
+                }
+
+                localStorage.setItem('traffico_memoria', JSON.stringify(nuoviDatiMemoria));
+                
+                const totaleHTML = htmlAttivi + htmlPersistenti;
+                container.innerHTML = totaleHTML !== "" ? totaleHTML : '<div class="status-msg">NESSUNA CRITICITÀ RILEVATA</div>';
                 syncStatus.textContent = "LIVE - " + new Date().toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'});
-            } catch (e) { syncStatus.textContent = "ERRORE CONNESSIONE"; }
+
+            } catch (e) { 
+                console.error(e);
+                syncStatus.textContent = "ERRORE CONNESSIONE"; 
+            }
         }
 
         fetchFromSheets();
