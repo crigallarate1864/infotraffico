@@ -17,50 +17,108 @@
             --warning: #b45309; --success: #15803d;
         }
         * { box-sizing: border-box; }
+        
         body {
             background-color: var(--bg-main); color: var(--text-bright);
-            font-family: 'Inter', 'Segoe UI', sans-serif; margin: 0; padding: 25px;
-            height: 100vh; display: grid; grid-template-rows: 120px 1fr; gap: 20px; overflow: hidden;
+            font-family: 'Inter', 'Segoe UI', sans-serif; margin: 0; padding: 20px;
+            height: 100vh; /* Forza l'altezza alla risoluzione dello schermo */
+            display: grid; 
+            grid-template-rows: 100px 1fr; /* Header fisso, il resto occupa tutto lo spazio */
+            gap: 20px; 
+            overflow: hidden; /* Impedisce alla pagina intera di scorrere */
         }
 
-        /* HEADER MASTER RIPRISTINATO */
+        /* HEADER */
         header {
             display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
-            border-bottom: 3px solid var(--border); padding-bottom: 15px;
+            border-bottom: 3px solid var(--border); padding-bottom: 10px;
         }
         .header-center { display: flex; align-items: center; gap: 25px; }
-        .header-center h1 { font-size: 3.2rem; font-weight: 900; text-transform: uppercase; margin: 0; }
+        .header-center h1 { font-size: 3rem; font-weight: 900; text-transform: uppercase; margin: 0; }
         .header-center .separator { font-size: 3rem; color: var(--border); font-weight: 300; }
-        .header-center img { max-height: 80px; width: auto; }
+        .header-center img { max-height: 70px; width: auto; }
 
         .header-right { justify-self: end; text-align: right; width: 400px; }
-        #date-box { font-size: 1.3rem; font-weight: 800; text-transform: uppercase; color: var(--text-dim); margin-bottom: 5px; }
-        #clock { font-size: 4.2rem; font-weight: 900; font-family: monospace; color: var(--warning); line-height: 0.9; }
+        #date-box { font-size: 1.2rem; font-weight: 800; text-transform: uppercase; color: var(--text-dim); margin-bottom: 2px; }
+        #clock { font-size: 3.8rem; font-weight: 900; font-family: monospace; color: var(--warning); line-height: 0.9; }
 
-        /* LAYOUT */
-        main { display: grid; grid-template-columns: 520px 1fr; gap: 25px; height: 100%; padding-bottom: 90px; }
-        .panel { background: var(--bg-card); border: 2px solid var(--border); border-radius: 15px; display: flex; flex-direction: column; overflow: hidden; }
-        .panel-header { padding: 18px 25px; font-size: 1.2rem; font-weight: 900; text-transform: uppercase; display: flex; justify-content: space-between; }
+        /* LAYOUT PRINCIPALE */
+        main { 
+            display: grid; 
+            grid-template-columns: 500px 1fr; 
+            gap: 20px; 
+            height: calc(100vh - 160px); /* Calcola l'altezza esatta per stare nel monitor */
+            overflow: hidden;
+        }
+
+        .panel { 
+            background: var(--bg-card); 
+            border: 2px solid var(--border); 
+            border-radius: 15px; 
+            display: flex; 
+            flex-direction: column; 
+            height: 100%; /* I pannelli non devono mai superare l'altezza di main */
+            overflow: hidden; 
+        }
+
+        .panel-header { 
+            padding: 15px 25px; 
+            font-size: 1.1rem; 
+            font-weight: 900; 
+            text-transform: uppercase; 
+            display: flex; 
+            justify-content: space-between; 
+            flex-shrink: 0; /* Impedisce alla testata di rimpicciolirsi */
+        }
+
         .header-permanente { background: var(--header-red); color: var(--danger); border-bottom: 4px solid var(--danger); }
         .header-bollettino { background: var(--header-dark); color: var(--warning); border-bottom: 4px solid var(--warning); }
 
-        /* SINISTRA */
-        .fixed-content { padding: 35px; }
-        .alert-box { border-left: 12px solid var(--danger); padding-left: 25px; margin-bottom: 50px; }
-        .alert-box .title { color: var(--danger); font-size: 2.1rem; font-weight: 900; margin-bottom: 15px; }
-        .alert-box .body-text { font-size: 1.6rem; line-height: 1.4; font-weight: 600; }
-        .detour-section { background: rgba(0, 0, 0, 0.05); padding: 30px; border-radius: 10px; border: 2px solid var(--border); }
-        .detour-value { font-size: 3rem; font-weight: 900; color: var(--warning); }
+        /* SINISTRA: FISSO */
+        .fixed-content { padding: 30px; overflow-y: auto; }
+        .alert-box { border-left: 10px solid var(--danger); padding-left: 20px; margin-bottom: 40px; }
+        .alert-box .title { color: var(--danger); font-size: 1.9rem; font-weight: 900; margin-bottom: 10px; }
+        .alert-box .body-text { font-size: 1.5rem; line-height: 1.4; font-weight: 600; }
+        .detour-section { background: rgba(0, 0, 0, 0.05); padding: 25px; border-radius: 10px; border: 2px solid var(--border); }
+        .detour-value { font-size: 2.8rem; font-weight: 900; color: var(--warning); }
         .highlight { color: var(--warning); font-weight: 800; }
 
-        /* DESTRA - RIQUADRI SOFT */
-        .feed-container { padding: 25px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; }
-        .feed-item { background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); border-radius: 12px; padding: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        body.light-mode .feed-item { background: #fdfdfd; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .item-title { color: var(--warning); font-weight: 900; font-size: 1.7rem; margin-bottom: 12px; text-transform: uppercase; border-bottom: 1px solid rgba(128,128,128,0.2); padding-bottom: 8px; }
-        .item-desc { font-size: 1.5rem; line-height: 1.5; font-weight: 500; }
+        /* DESTRA: FEED SCORREVOLE */
+        .feed-container { 
+            padding: 20px; 
+            overflow-y: scroll; /* Forza lo scroll */
+            flex-grow: 1; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 15px; 
+            scrollbar-width: none; /* Nasconde scrollbar su Firefox */
+        }
+        
+        .feed-container::-webkit-scrollbar { display: none; } /* Nasconde scrollbar su Chrome/Edge */
 
-        .status-msg { display: flex; justify-content: center; align-items: center; height: 100%; font-size: 2.2rem; font-weight: 800; color: var(--success); text-align: center; }
+        .feed-item { 
+            background: rgba(255, 255, 255, 0.03); 
+            border: 1px solid var(--border); 
+            border-radius: 12px; 
+            padding: 20px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+            flex-shrink: 0; /* Evita che gli item vengano schiacciati */
+        }
+        
+        body.light-mode .feed-item { background: #fdfdfd; }
+        
+        .item-title { 
+            color: var(--warning); 
+            font-weight: 900; 
+            font-size: 1.5rem; 
+            margin-bottom: 8px; 
+            text-transform: uppercase; 
+            border-bottom: 1px solid rgba(128,128,128,0.2); 
+            padding-bottom: 5px; 
+        }
+        .item-desc { font-size: 1.4rem; line-height: 1.4; font-weight: 500; }
+
+        .status-msg { display: flex; justify-content: center; align-items: center; height: 100%; font-size: 2rem; font-weight: 800; color: var(--success); text-align: center; }
     </style>
 </head>
 <body>
@@ -87,7 +145,7 @@
                     <div class="body-text">ENTRATA CHIUSA dalle ore <span class="highlight">21:00</span> del <span class="highlight">23/02/2026</span> alle ore <span class="highlight">05:00</span> del <span class="highlight">24/06/2026</span> in direzione MILANO.</div>
                 </div>
                 <div class="detour-section">
-                    <div style="font-size:1.1rem; text-transform:uppercase; color:var(--text-dim); margin-bottom:8px;">Entrata consigliata verso Milano:</div>
+                    <div style="font-size:1rem; text-transform:uppercase; color:var(--text-dim); margin-bottom:5px;">Entrata consigliata verso Milano:</div>
                     <div class="detour-value">BUSTO ARSIZIO</div>
                 </div>
             </div>
@@ -96,19 +154,16 @@
         <div class="panel">
             <div class="panel-header header-bollettino">
                 <span>PROVINCIA DI VARESE | A8 | A36 | LEGNANO</span>
-                <span id="sync-status" style="font-size: 0.9rem; opacity: 0.7;">IN ATTESA...</span>
+                <span id="sync-status" style="font-size: 0.8rem; opacity: 0.7;">IN ATTESA...</span>
             </div>
             <div id="feed" class="feed-container">
-                <div class="status-msg" id="main-status">CONNESSIONE AI DATI...</div>
+                <div class="status-msg" id="main-status">CARICAMENTO BOLLETTINO...</div>
             </div>
         </div>
     </main>
 
     <script>
-        // LINK CSV CORRETTO
         const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTQD7mYVjhrw9Ma3t_av071IGSDcaLoyojD55ZoOc-LuMIkT5OHWKwS93LQhVJCOGVHBJsG9Kyd2sXK/pub?gid=0&single=true&output=csv';
-        
-        // Proxy alternativo più robusto
         const PROXY = "https://api.allorigins.win/raw?url=";
 
         function updateClock() {
@@ -119,7 +174,6 @@
         }
         setInterval(updateClock, 1000); updateClock();
 
-        // Parser CSV per gestire virgolette e virgole interne
         function parseCSV(text) {
             const rows = []; let row = []; let col = ""; let inQuotes = false;
             for (let i = 0; i < text.length; i++) {
@@ -137,15 +191,11 @@
         async function fetchFromSheets() {
             const container = document.getElementById('feed');
             const syncStatus = document.getElementById('sync-status');
-            const mainStatus = document.getElementById('main-status');
             
             try {
-                // Aggiungiamo timestamp per evitare cache
                 const finalUrl = PROXY + encodeURIComponent(CSV_URL + '&t=' + Date.now());
                 const response = await fetch(finalUrl);
-                
                 if (!response.ok) throw new Error("Errore Proxy");
-                
                 const csvData = await response.text();
                 const rows = parseCSV(csvData);
                 
@@ -156,8 +206,6 @@
                     if (cols.length >= 3) {
                         const title = cols[0].trim();
                         const desc = cols[2] ? cols[2].trim() : "";
-                        
-                        // Validazione riga: deve esserci contenuto reale
                         if (title.length > 5 && !title.toLowerCase().includes("nessuna criticità")) {
                             contentHTML += `
                                 <div class="feed-item">
@@ -169,22 +217,37 @@
                     }
                 });
 
-                if (count > 0) {
-                    container.innerHTML = contentHTML;
-                } else {
-                    container.innerHTML = '<div class="status-msg">✅ NESSUNA CRITICITÀ RILEVATA</div>';
-                }
+                container.innerHTML = count > 0 ? contentHTML : '<div class="status-msg">✅ NESSUNA CRITICITÀ RILEVATA</div>';
                 syncStatus.textContent = "LIVE - AGGIORNATO: " + new Date().toLocaleTimeString();
+                
+                // Reset scroll quando si aggiornano i dati
+                container.scrollTop = 0;
 
             } catch (e) {
-                console.error(e);
                 syncStatus.textContent = "ERRORE CONNESSIONE";
-                mainStatus.innerHTML = "⚠️ ERRORE DI COLLEGAMENTO<br><small style='font-size:1rem; color:red;'>Verifica connessione o link CSV</small>";
             }
         }
 
+        // --- FUNZIONE AUTO-SCROLL ---
+        function startAutoScroll() {
+            const container = document.getElementById('feed');
+            let scrollSpeed = 1; // Velocità di scorrimento (pixel)
+            
+            setInterval(() => {
+                if (container.scrollHeight > container.clientHeight) {
+                    container.scrollTop += scrollSpeed;
+                    
+                    // Se arriva alla fine, torna all'inizio con una piccola pausa
+                    if (container.scrollTop + container.clientHeight >= container.scrollHeight - 1) {
+                        setTimeout(() => { container.scrollTop = 0; }, 3000); 
+                    }
+                }
+            }, 50); // Fluidità dello scroll
+        }
+
         fetchFromSheets();
-        setInterval(fetchFromSheets, 60000); // Refresh ogni minuto
+        setInterval(fetchFromSheets, 60000);
+        startAutoScroll(); // Attiva lo scorrimento automatico
     </script>
 </body>
 </html>
