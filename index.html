@@ -22,7 +22,7 @@
             background-color: var(--bg-main); color: var(--text-bright);
             font-family: 'Inter', 'Segoe UI', sans-serif; margin: 0; padding: 25px;
             height: 100vh; display: grid; grid-template-rows: 120px 1fr; gap: 20px; overflow: hidden;
-            position: relative; /* Per posizionare il logo fuori dai box */
+            position: relative;
         }
 
         /* HEADER MASTER CENTRATO */
@@ -52,7 +52,6 @@
         .alert-box .body-text { font-size: 1.6rem; line-height: 1.4; font-weight: 600; }
         .detour-section { background: rgba(0, 0, 0, 0.05); padding: 30px; border-radius: 10px; border: 2px solid var(--border); }
         .detour-value { font-size: 3rem; font-weight: 900; color: var(--warning); }
-        .highlight { color: var(--warning); font-weight: 800; }
 
         /* FEED SCORREVOLE */
         .feed-container { 
@@ -69,19 +68,9 @@
 
         .status-msg { display: flex; justify-content: center; align-items: center; height: 100%; font-size: 2.2rem; font-weight: 800; color: var(--success); text-align: center; }
 
-        /* LOGO CCISS - FUORI DAI BOX (In basso a destra) */
-        .footer-logo { 
-            position: fixed; 
-            bottom: 20px; 
-            right: 20px; 
-            z-index: 999; 
-        }
-        .footer-logo img { 
-            max-height: 65px; 
-            width: auto; 
-            filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5));
-            opacity: 0.9;
-        }
+        /* LOGO CCISS - POSIZIONE FISSA ESTERNA */
+        .footer-logo { position: fixed; bottom: 20px; right: 20px; z-index: 1000; }
+        .footer-logo img { max-height: 65px; width: auto; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5)); }
     </style>
 </head>
 <body>
@@ -105,7 +94,7 @@
             <div class="fixed-content">
                 <div class="alert-box">
                     <div class="title">A8 GALLARATE</div>
-                    <div class="body-text">ENTRATA CHIUSA dalle ore <span class="highlight">21:00</span> del <span class="highlight">23/02/2026</span> alle ore <span class="highlight">05:00</span> del <span class="highlight">24/06/2026</span> in direzione MILANO.</div>
+                    <div class="body-text">ENTRATA CHIUSA dalle ore <span style="color:var(--warning)">21:00</span> del <span style="color:var(--warning)">23/02/2026</span> alle ore <span style="color:var(--warning)">05:00</span> del <span style="color:var(--warning)">24/06/2026</span> in direzione MILANO.</div>
                 </div>
                 <div class="detour-section">
                     <div style="font-size:1.1rem; text-transform:uppercase; color:var(--text-dim); margin-bottom:8px;">Entrata consigliata verso Milano:</div>
@@ -117,10 +106,10 @@
         <div class="panel">
             <div class="panel-header header-bollettino">
                 <span>BOLLETTINO LIVE</span>
-                <span id="sync-status" style="font-size: 0.9rem; opacity: 0.7;">RICERCA DATI...</span>
+                <span id="sync-status" style="font-size: 0.9rem; opacity: 0.7;">CONNESSIONE...</span>
             </div>
             <div id="feed" class="feed-container">
-                <div id="main-status" class="status-msg">CONNESSIONE AL DATABASE...</div>
+                <div id="main-status" class="status-msg">RECUPERO DATI IN CORSO...</div>
             </div>
         </div>
     </main>
@@ -130,11 +119,8 @@
     </div>
 
     <script>
-        const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTQD7mYVjhrw9Ma3t_av071IGSDcaLoyojD55ZoOc-LuMIkT5OHWKwS93LQhVJCOGVHBJsG9Kyd2sXK/pub?gid=0&single=true&output=csv';
+        const CSV_LINK = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTQD7mYVjhrw9Ma3t_av071IGSDcaLoyojD55ZoOc-LuMIkT5OHWKwS93LQhVJCOGVHBJsG9Kyd2sXK/pub?output=csv';
         
-        // Proxy più leggero
-        const PROXY = "https://api.allorigins.win/raw?url=";
-
         function updateClock() {
             const now = new Date();
             document.getElementById('date-box').textContent = now.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
@@ -157,51 +143,56 @@
             return rows;
         }
 
-        async function fetchFromSheets() {
+        async function fetchWithRetry() {
             const container = document.getElementById('feed');
             const syncStatus = document.getElementById('sync-status');
-            const mainStatus = document.getElementById('main-status');
             
-            try {
-                const finalUrl = PROXY + encodeURIComponent(CSV_URL + '&t=' + Date.now());
-                const response = await fetch(finalUrl);
-                
-                if (!response.ok) throw new Error("Risposta server non valida");
-                
-                const csvData = await response.text();
-                const rows = parseCSV(csvData);
-                
-                let contentHTML = "";
-                let count = 0;
+            // Proviamo 3 diversi sistemi per saltare il blocco browser
+            const proxies = [
+                "https://api.allorigins.win/raw?url=",
+                "https://corsproxy.io/?",
+                "" // Tentativo diretto
+            ];
 
-                rows.forEach(cols => {
-                    if (cols.length >= 3) {
-                        const title = cols[0].trim();
-                        const desc = cols[2] ? cols[2].trim() : "";
-                        
-                        if (title.length > 2 && !title.toLowerCase().includes("nessuna criticità")) {
-                            contentHTML += `
-                                <div class="feed-item">
-                                    <div class="item-title">${title.toUpperCase()}</div>
-                                    <div class="item-desc">${desc}</div>
-                                </div>`;
-                            count++;
-                        }
-                    }
-                });
-
-                if (count > 0) {
-                    container.innerHTML = contentHTML;
-                } else {
-                    container.innerHTML = '<div class="status-msg">✅ NESSUN EVENTO RILEVATO</div>';
+            for (let proxy of proxies) {
+                try {
+                    const url = proxy + encodeURIComponent(CSV_LINK + '&t=' + Date.now());
+                    const response = await fetch(url);
+                    if (!response.ok) continue;
+                    
+                    const data = await response.text();
+                    const rows = parseCSV(data);
+                    renderData(rows);
+                    syncStatus.textContent = "LIVE - AGGIORNATO: " + new Date().toLocaleTimeString();
+                    return; // Esci se ha funzionato
+                } catch (e) {
+                    console.log("Tentativo proxy fallito, provo il prossimo...");
                 }
-                syncStatus.textContent = "OK - AGGIORNATO: " + new Date().toLocaleTimeString();
-
-            } catch (e) {
-                console.error("ERRORE:", e);
-                syncStatus.textContent = "CONNESSIONE FALLITA";
-                container.innerHTML = `<div class="status-msg" style="color:red;">⚠️ ERRORE DI CARICAMENTO<br><small style='font-size:1.1rem; color:var(--text-dim);'>Controlla la connessione o apri in Incognito</small></div>`;
             }
+            container.innerHTML = `<div class="status-msg" style="color:red;">⚠️ ERRORE CONNESSIONE<br><small style="font-size:1rem;color:var(--text-dim)">Prova ad aprire il file in una finestra INCÒGNITO</small></div>`;
+        }
+
+        function renderData(rows) {
+            const container = document.getElementById('feed');
+            let html = "";
+            let count = 0;
+
+            rows.forEach(cols => {
+                // LOGICA RICHIESTA: Se Colonna A (index 0) è compilata
+                if (cols[0] && cols[0].trim().length > 1) {
+                    const title = cols[0].trim();
+                    const news = cols[2] ? cols[2].trim() : "Dettagli non disponibili";
+                    
+                    html += `
+                        <div class="feed-item">
+                            <div class="item-title">${title.toUpperCase()}</div>
+                            <div class="item-desc">${news}</div>
+                        </div>`;
+                    count++;
+                }
+            });
+
+            container.innerHTML = count > 0 ? html : '<div class="status-msg">✅ NESSUNA NOTIZIA RILEVATA</div>';
         }
 
         function startAutoScroll() {
@@ -216,8 +207,8 @@
             }, 50);
         }
 
-        fetchFromSheets();
-        setInterval(fetchFromSheets, 60000);
+        fetchWithRetry();
+        setInterval(fetchWithRetry, 60000);
         startAutoScroll();
     </script>
 </body>
