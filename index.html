@@ -22,6 +22,7 @@
             background-color: var(--bg-main); color: var(--text-bright);
             font-family: 'Inter', 'Segoe UI', sans-serif; margin: 0; padding: 25px;
             height: 100vh; display: grid; grid-template-rows: 120px 1fr; gap: 20px; overflow: hidden;
+            position: relative; /* Per posizionare il logo fuori dai box */
         }
 
         /* HEADER MASTER CENTRATO */
@@ -66,17 +67,27 @@
         .item-title { color: var(--warning); font-weight: 900; font-size: 1.7rem; margin-bottom: 12px; text-transform: uppercase; border-bottom: 1px solid rgba(128,128,128,0.2); padding-bottom: 8px; }
         .item-desc { font-size: 1.5rem; line-height: 1.5; font-weight: 500; }
 
-        .status-msg { display: flex; justify-content: center; align-items: center; height: 100%; font-size: 2.2rem; font-weight: 800; color: var(--success); text-align: center; flex-direction: column; }
+        .status-msg { display: flex; justify-content: center; align-items: center; height: 100%; font-size: 2.2rem; font-weight: 800; color: var(--success); text-align: center; }
 
-        /* LOGO CCISS RIPRISTINATO */
-        .footer-logo { position: absolute; bottom: 30px; right: 40px; z-index: 100; }
-        .footer-logo img { max-height: 75px; width: auto; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3)); }
+        /* LOGO CCISS - FUORI DAI BOX (In basso a destra) */
+        .footer-logo { 
+            position: fixed; 
+            bottom: 20px; 
+            right: 20px; 
+            z-index: 999; 
+        }
+        .footer-logo img { 
+            max-height: 65px; 
+            width: auto; 
+            filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5));
+            opacity: 0.9;
+        }
     </style>
 </head>
 <body>
 
     <header>
-        <div class="header-left"></div>
+        <div></div>
         <div class="header-center">
             <h1>Info Viabilità</h1>
             <span class="separator">|</span>
@@ -105,11 +116,11 @@
 
         <div class="panel">
             <div class="panel-header header-bollettino">
-                <span>BOLLETTINO LIVE DA GOOGLE SHEETS</span>
-                <span id="sync-status" style="font-size: 0.9rem; opacity: 0.7;">CONNESSIONE...</span>
+                <span>BOLLETTINO LIVE</span>
+                <span id="sync-status" style="font-size: 0.9rem; opacity: 0.7;">RICERCA DATI...</span>
             </div>
             <div id="feed" class="feed-container">
-                <div class="status-msg" id="main-status">RICERCA DATI IN CORSO...</div>
+                <div id="main-status" class="status-msg">CONNESSIONE AL DATABASE...</div>
             </div>
         </div>
     </main>
@@ -121,8 +132,8 @@
     <script>
         const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTQD7mYVjhrw9Ma3t_av071IGSDcaLoyojD55ZoOc-LuMIkT5OHWKwS93LQhVJCOGVHBJsG9Kyd2sXK/pub?gid=0&single=true&output=csv';
         
-        // Proxy più potente per evitare il blocco CORS
-        const PROXY = "https://corsproxy.io/?";
+        // Proxy più leggero
+        const PROXY = "https://api.allorigins.win/raw?url=";
 
         function updateClock() {
             const now = new Date();
@@ -152,11 +163,10 @@
             const mainStatus = document.getElementById('main-status');
             
             try {
-                // Utilizzo forzato del proxy con timestamp anti-cache
-                const finalUrl = PROXY + encodeURIComponent(CSV_URL + '&cachebust=' + new Date().getTime());
+                const finalUrl = PROXY + encodeURIComponent(CSV_URL + '&t=' + Date.now());
                 const response = await fetch(finalUrl);
                 
-                if (!response.ok) throw new Error("Server non risponde");
+                if (!response.ok) throw new Error("Risposta server non valida");
                 
                 const csvData = await response.text();
                 const rows = parseCSV(csvData);
@@ -169,7 +179,6 @@
                         const title = cols[0].trim();
                         const desc = cols[2] ? cols[2].trim() : "";
                         
-                        // Legge tutto quello che passa lo script del foglio
                         if (title.length > 2 && !title.toLowerCase().includes("nessuna criticità")) {
                             contentHTML += `
                                 <div class="feed-item">
@@ -184,13 +193,14 @@
                 if (count > 0) {
                     container.innerHTML = contentHTML;
                 } else {
-                    container.innerHTML = '<div class="status-msg">✅ NESSUNA NOTIZIA PRESENTE NEL FOGLIO</div>';
+                    container.innerHTML = '<div class="status-msg">✅ NESSUN EVENTO RILEVATO</div>';
                 }
-                syncStatus.textContent = "LIVE - OK: " + new Date().toLocaleTimeString();
+                syncStatus.textContent = "OK - AGGIORNATO: " + new Date().toLocaleTimeString();
 
             } catch (e) {
-                syncStatus.textContent = "ERRORE CONNESSIONE";
-                container.innerHTML = `<div class="status-msg" style="color:red;">⚠️ ERRORE DI LETTURA DATI<br><small style="font-size:1.1rem; color:var(--text-dim);">Prova ad aprire il file in una finestra INCÒGNITO</small></div>`;
+                console.error("ERRORE:", e);
+                syncStatus.textContent = "CONNESSIONE FALLITA";
+                container.innerHTML = `<div class="status-msg" style="color:red;">⚠️ ERRORE DI CARICAMENTO<br><small style='font-size:1.1rem; color:var(--text-dim);'>Controlla la connessione o apri in Incognito</small></div>`;
             }
         }
 
