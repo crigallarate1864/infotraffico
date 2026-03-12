@@ -35,7 +35,7 @@
         .header-center .separator { font-size: 3rem; color: var(--border); font-weight: 300; }
         .header-center img { max-height: 80px; width: auto; }
 
-        .header-right { justify-self: end; text-align: right; width: 400px; }
+        .header-right { justify-self: end; text-align: right; width: 450px; }
         #date-box { font-size: 1.3rem; font-weight: 800; text-transform: uppercase; color: var(--text-dim); margin-bottom: 5px; }
         #clock { font-size: 4.2rem; font-weight: 900; font-family: monospace; color: var(--warning); line-height: 0.9; }
 
@@ -68,9 +68,9 @@
 
         .status-msg { display: flex; justify-content: center; align-items: center; height: 100%; font-size: 2.2rem; font-weight: 800; color: var(--success); text-align: center; }
 
-        /* LOGO CCISS - POSIZIONE FISSA ESTERNA */
-        .footer-logo { position: fixed; bottom: 20px; right: 20px; z-index: 1000; }
-        .footer-logo img { max-height: 65px; width: auto; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5)); }
+        /* LOGO CCISS - FISSO ESTERNO */
+        .footer-logo { position: fixed; bottom: 25px; right: 25px; z-index: 1000; }
+        .footer-logo img { max-height: 70px; width: auto; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5)); }
     </style>
 </head>
 <body>
@@ -109,7 +109,7 @@
                 <span id="sync-status" style="font-size: 0.9rem; opacity: 0.7;">CONNESSIONE...</span>
             </div>
             <div id="feed" class="feed-container">
-                <div id="main-status" class="status-msg">RECUPERO DATI IN CORSO...</div>
+                <div id="main-status" class="status-msg">ATTENDERE RICEZIONE DATI...</div>
             </div>
         </div>
     </main>
@@ -123,7 +123,8 @@
         
         function updateClock() {
             const now = new Date();
-            document.getElementById('date-box').textContent = now.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+            const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+            document.getElementById('date-box').textContent = now.toLocaleDateString('it-IT', options);
             document.getElementById('clock').textContent = now.toLocaleTimeString('it-IT', { hour12: false });
             document.body.classList.toggle('light-mode', now.getHours() >= 8 && now.getHours() < 18);
         }
@@ -144,14 +145,10 @@
         }
 
         async function fetchWithRetry() {
-            const container = document.getElementById('feed');
             const syncStatus = document.getElementById('sync-status');
-            
-            // Proviamo 3 diversi sistemi per saltare il blocco browser
             const proxies = [
                 "https://api.allorigins.win/raw?url=",
-                "https://corsproxy.io/?",
-                "" // Tentativo diretto
+                "https://corsproxy.io/?"
             ];
 
             for (let proxy of proxies) {
@@ -163,13 +160,12 @@
                     const data = await response.text();
                     const rows = parseCSV(data);
                     renderData(rows);
-                    syncStatus.textContent = "LIVE - AGGIORNATO: " + new Date().toLocaleTimeString();
-                    return; // Esci se ha funzionato
+                    syncStatus.textContent = "LIVE - OK: " + new Date().toLocaleTimeString();
+                    return; 
                 } catch (e) {
-                    console.log("Tentativo proxy fallito, provo il prossimo...");
+                    console.log("Proxy bypass...");
                 }
             }
-            container.innerHTML = `<div class="status-msg" style="color:red;">⚠️ ERRORE CONNESSIONE<br><small style="font-size:1rem;color:var(--text-dim)">Prova ad aprire il file in una finestra INCÒGNITO</small></div>`;
         }
 
         function renderData(rows) {
@@ -178,10 +174,10 @@
             let count = 0;
 
             rows.forEach(cols => {
-                // LOGICA RICHIESTA: Se Colonna A (index 0) è compilata
+                // Legge se Colonna A è compilata, riporta Colonna C
                 if (cols[0] && cols[0].trim().length > 1) {
                     const title = cols[0].trim();
-                    const news = cols[2] ? cols[2].trim() : "Dettagli non disponibili";
+                    const news = cols[2] ? cols[2].trim() : "";
                     
                     html += `
                         <div class="feed-item">
@@ -192,7 +188,7 @@
                 }
             });
 
-            container.innerHTML = count > 0 ? html : '<div class="status-msg">✅ NESSUNA NOTIZIA RILEVATA</div>';
+            container.innerHTML = count > 0 ? html : '<div class="status-msg">✅ NESSUN EVENTO RILEVATO</div>';
         }
 
         function startAutoScroll() {
