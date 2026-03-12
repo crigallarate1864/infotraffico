@@ -20,8 +20,8 @@
         
         body {
             background-color: var(--bg-main); color: var(--text-bright);
-            font-family: 'Inter', sans-serif; margin: 0; padding: 20px;
-            height: 100vh; display: grid; grid-template-rows: 110px 1fr; gap: 20px; overflow: hidden;
+            font-family: 'Inter', 'Segoe UI', sans-serif; margin: 0; padding: 25px;
+            height: 100vh; display: grid; grid-template-rows: 120px 1fr; gap: 20px; overflow: hidden;
         }
 
         /* HEADER MASTER CENTRATO */
@@ -35,17 +35,17 @@
         .header-center img { max-height: 80px; width: auto; }
 
         .header-right { justify-self: end; text-align: right; width: 400px; }
-        #date-box { font-size: 1.3rem; font-weight: 800; text-transform: uppercase; color: var(--text-dim); margin-bottom: 2px; }
+        #date-box { font-size: 1.3rem; font-weight: 800; text-transform: uppercase; color: var(--text-dim); margin-bottom: 5px; }
         #clock { font-size: 4.2rem; font-weight: 900; font-family: monospace; color: var(--warning); line-height: 0.9; }
 
         /* LAYOUT */
-        main { display: grid; grid-template-columns: 520px 1fr; gap: 20px; height: calc(100vh - 160px); overflow: hidden; }
+        main { display: grid; grid-template-columns: 520px 1fr; gap: 25px; height: calc(100vh - 160px); overflow: hidden; }
         .panel { background: var(--bg-card); border: 2px solid var(--border); border-radius: 15px; display: flex; flex-direction: column; overflow: hidden; }
         .panel-header { padding: 18px 25px; font-size: 1.2rem; font-weight: 900; text-transform: uppercase; display: flex; justify-content: space-between; flex-shrink: 0; }
         .header-permanente { background: var(--header-red); color: var(--danger); border-bottom: 4px solid var(--danger); }
         .header-bollettino { background: var(--header-dark); color: var(--warning); border-bottom: 4px solid var(--warning); }
 
-        .fixed-content { padding: 35px; overflow-y: auto; }
+        .fixed-content { padding: 35px; }
         .alert-box { border-left: 12px solid var(--danger); padding-left: 25px; margin-bottom: 50px; }
         .alert-box .title { color: var(--danger); font-size: 2.1rem; font-weight: 900; margin-bottom: 15px; }
         .alert-box .body-text { font-size: 1.6rem; line-height: 1.4; font-weight: 600; }
@@ -53,7 +53,7 @@
         .detour-value { font-size: 3rem; font-weight: 900; color: var(--warning); }
         .highlight { color: var(--warning); font-weight: 800; }
 
-        /* DESTRA - SOLO LETTURA SCORREVOLE */
+        /* FEED SCORREVOLE */
         .feed-container { 
             padding: 25px; overflow-y: scroll; flex-grow: 1; 
             display: flex; flex-direction: column; gap: 20px; 
@@ -66,7 +66,11 @@
         .item-title { color: var(--warning); font-weight: 900; font-size: 1.7rem; margin-bottom: 12px; text-transform: uppercase; border-bottom: 1px solid rgba(128,128,128,0.2); padding-bottom: 8px; }
         .item-desc { font-size: 1.5rem; line-height: 1.5; font-weight: 500; }
 
-        .status-msg { display: flex; justify-content: center; align-items: center; height: 100%; font-size: 2.2rem; font-weight: 800; color: var(--success); text-align: center; }
+        .status-msg { display: flex; justify-content: center; align-items: center; height: 100%; font-size: 2.2rem; font-weight: 800; color: var(--success); text-align: center; flex-direction: column; }
+
+        /* LOGO CCISS RIPRISTINATO */
+        .footer-logo { position: absolute; bottom: 30px; right: 40px; z-index: 100; }
+        .footer-logo img { max-height: 75px; width: auto; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3)); }
     </style>
 </head>
 <body>
@@ -75,7 +79,7 @@
         <div class="header-left"></div>
         <div class="header-center">
             <h1>Info Viabilità</h1>
-            <span style="font-size:3rem; color:var(--border);">|</span>
+            <span class="separator">|</span>
             <img src="logo.png" alt="" onerror="this.style.visibility='hidden'">
         </div>
         <div class="header-right">
@@ -101,18 +105,24 @@
 
         <div class="panel">
             <div class="panel-header header-bollettino">
-                <span>BOLLETTINO IN TEMPO REALE</span>
-                <span id="sync-status" style="font-size: 0.9rem; opacity: 0.7;">IN ATTESA...</span>
+                <span>BOLLETTINO LIVE DA GOOGLE SHEETS</span>
+                <span id="sync-status" style="font-size: 0.9rem; opacity: 0.7;">CONNESSIONE...</span>
             </div>
             <div id="feed" class="feed-container">
-                <div class="status-msg">CONNESSIONE AI DATI...</div>
+                <div class="status-msg" id="main-status">RICERCA DATI IN CORSO...</div>
             </div>
         </div>
     </main>
 
+    <div class="footer-logo">
+        <img src="logo CCISS.png" alt="CCISS" onerror="this.style.visibility='hidden'">
+    </div>
+
     <script>
         const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTQD7mYVjhrw9Ma3t_av071IGSDcaLoyojD55ZoOc-LuMIkT5OHWKwS93LQhVJCOGVHBJsG9Kyd2sXK/pub?gid=0&single=true&output=csv';
-        const PROXY = "https://api.allorigins.win/raw?url=";
+        
+        // Proxy più potente per evitare il blocco CORS
+        const PROXY = "https://corsproxy.io/?";
 
         function updateClock() {
             const now = new Date();
@@ -139,9 +149,15 @@
         async function fetchFromSheets() {
             const container = document.getElementById('feed');
             const syncStatus = document.getElementById('sync-status');
+            const mainStatus = document.getElementById('main-status');
             
             try {
-                const response = await fetch(PROXY + encodeURIComponent(CSV_URL + '&t=' + Date.now()));
+                // Utilizzo forzato del proxy con timestamp anti-cache
+                const finalUrl = PROXY + encodeURIComponent(CSV_URL + '&cachebust=' + new Date().getTime());
+                const response = await fetch(finalUrl);
+                
+                if (!response.ok) throw new Error("Server non risponde");
+                
                 const csvData = await response.text();
                 const rows = parseCSV(csvData);
                 
@@ -153,8 +169,8 @@
                         const title = cols[0].trim();
                         const desc = cols[2] ? cols[2].trim() : "";
                         
-                        // Legge TUTTO quello che scrivi nel foglio
-                        if (title.length > 2) {
+                        // Legge tutto quello che passa lo script del foglio
+                        if (title.length > 2 && !title.toLowerCase().includes("nessuna criticità")) {
                             contentHTML += `
                                 <div class="feed-item">
                                     <div class="item-title">${title.toUpperCase()}</div>
@@ -165,12 +181,16 @@
                     }
                 });
 
-                container.innerHTML = count > 0 ? contentHTML : '<div class="status-msg">✅ NESSUNA NOTIZIA NEL FOGLIO</div>';
-                syncStatus.textContent = "LIVE - AGGIORNATO: " + new Date().toLocaleTimeString();
-                container.scrollTop = 0;
+                if (count > 0) {
+                    container.innerHTML = contentHTML;
+                } else {
+                    container.innerHTML = '<div class="status-msg">✅ NESSUNA NOTIZIA PRESENTE NEL FOGLIO</div>';
+                }
+                syncStatus.textContent = "LIVE - OK: " + new Date().toLocaleTimeString();
 
             } catch (e) {
-                syncStatus.textContent = "ERRORE DI RETE";
+                syncStatus.textContent = "ERRORE CONNESSIONE";
+                container.innerHTML = `<div class="status-msg" style="color:red;">⚠️ ERRORE DI LETTURA DATI<br><small style="font-size:1.1rem; color:var(--text-dim);">Prova ad aprire il file in una finestra INCÒGNITO</small></div>`;
             }
         }
 
@@ -180,7 +200,7 @@
                 if (container.scrollHeight > container.clientHeight) {
                     container.scrollTop += 1;
                     if (container.scrollTop + container.clientHeight >= container.scrollHeight - 1) {
-                        setTimeout(() => { container.scrollTop = 0; }, 3000); 
+                        setTimeout(() => { container.scrollTop = 0; }, 4000); 
                     }
                 }
             }, 50);
