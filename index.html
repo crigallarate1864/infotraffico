@@ -135,7 +135,7 @@
             border: 1px dashed var(--accent); 
         }
 
-        .detour-label { font-size: 0.9rem; text-transform: uppercase; color: var(--text-dim); font-weight: 700; }
+        .detour-label { font-size: 0.85rem; text-transform: uppercase; color: var(--text-dim); font-weight: 700; }
         .detour-value { font-size: 2.5rem; font-weight: 900; color: var(--accent); }
 
         .feed-container { padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
@@ -194,16 +194,14 @@
         <div class="panel">
             <div class="panel-header header-bollettino">PROVINCIA DI VARESE | A8 | A36 | LEGNANO | SS336</div>
             <div id="feed" class="feed-container">
-                <div class="status-msg">RECUPERO NOTIZIE CCISS...</div>
+                <div class="status-msg">SINCRO DATI...</div>
             </div>
         </div>
     </main>
 
     <script>
-        const RSS_URL = 'https://www.cciss.it/rss';
+        const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTQD7mYVjhrw9Ma3t_av071IGSDcaLoyojD55ZoOc-LuMIkT5OHWKwS93LQhVJCOGVHBJsG9Kyd2sXK/pub?gid=0&single=true&output=csv';
         const PROXY = "https://corsproxy.io/?";
-
-        const keywords = ["varese", "gallarate", "busto arsizio", "legnano", "saronno", "a8", "a36", "ss336", "malpensa", "pedemontana"];
 
         function updateClock() {
             const now = new Date();
@@ -214,46 +212,45 @@
         setInterval(updateClock, 1000); 
         updateClock();
 
-        async function fetchRSS() {
+        function fastParseCSV(text) {
+            const regex = /,(?=(?:(?:[^"]*"){2})*[^"]*$)/;
+            return text.split(/\r?\n/).map(line => line.split(regex).map(cell => cell.replace(/^"|"$/g, '')));
+        }
+
+        async function fetchFromSheets() {
             const container = document.getElementById('feed');
             try {
-                // Utilizzo del proxy per leggere l'XML del CCISS senza errori CORS
-                const response = await fetch(PROXY + encodeURIComponent(RSS_URL + '?t=' + Date.now()));
-                const text = await response.text();
-                const parser = new DOMParser();
-                const xml = parser.parseFromString(text, "text/xml");
-                const items = xml.querySelectorAll("item");
-                
+                const response = await fetch(`${PROXY}${encodeURIComponent(CSV_URL)}&t=${Date.now()}`);
+                const csvData = await response.text();
+                const rows = fastParseCSV(csvData);
                 let contentHTML = "";
                 let count = 0;
 
-                items.forEach(item => {
-                    const title = item.querySelector("title").textContent;
-                    const desc = item.querySelector("description").textContent;
-                    const fullText = (title + " " + desc).toLowerCase();
-
-                    // Controllo filtri
-                    if (keywords.some(key => fullText.includes(key))) {
-                        contentHTML += `
-                            <div class="feed-item">
-                                <div class="item-title">${title.toUpperCase()}</div>
-                                <div class="item-desc">${desc}</div>
-                            </div>`;
-                        count++;
+                rows.forEach(cols => {
+                    if (cols.length >= 3) {
+                        const title = cols[0].trim(); // Colonna A
+                        const desc = cols[2].trim();  // Colonna C
+                        
+                        // Nessun filtro per parole chiave, solo controllo presenza dati
+                        if (title.length > 0) {
+                            contentHTML += `
+                                <div class="feed-item">
+                                    <div class="item-title">${title.toUpperCase()}</div>
+                                    <div class="item-desc">${desc}</div>
+                                </div>`;
+                            count++;
+                        }
                     }
                 });
-
+                
                 container.innerHTML = count > 0 ? contentHTML : '<div class="status-msg">✅ NESSUNA NOTIZIA RILEVATA</div>';
-
             } catch (e) {
-                console.error("Errore RSS:", e);
-                container.innerHTML = '<div class="status-msg">⚠️ ERRORE CONNESSIONE FEED CCISS</div>';
+                container.innerHTML = '<div class="status-msg">⚠️ ERRORE CONNESSIONE DATI</div>';
             }
         }
 
-        // Caricamento immediato e refresh ogni 60 secondi
-        fetchRSS();
-        setInterval(fetchRSS, 60000);
+        fetchFromSheets();
+        setInterval(fetchFromSheets, 30000);
     </script>
 </body>
 </html>
