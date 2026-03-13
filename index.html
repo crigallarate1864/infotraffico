@@ -25,7 +25,6 @@
             position: relative;
         }
 
-        /* HEADER MASTER CENTRATO */
         header {
             display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
             border-bottom: 3px solid var(--border); padding-bottom: 15px;
@@ -39,7 +38,6 @@
         #date-box { font-size: 1.3rem; font-weight: 800; text-transform: uppercase; color: var(--text-dim); margin-bottom: 5px; }
         #clock { font-size: 4.2rem; font-weight: 900; font-family: monospace; color: var(--warning); line-height: 0.9; }
 
-        /* LAYOUT */
         main { display: grid; grid-template-columns: 520px 1fr; gap: 25px; height: calc(100vh - 160px); overflow: hidden; }
         .panel { background: var(--bg-card); border: 2px solid var(--border); border-radius: 15px; display: flex; flex-direction: column; overflow: hidden; }
         .panel-header { padding: 18px 25px; font-size: 1.2rem; font-weight: 900; text-transform: uppercase; display: flex; justify-content: space-between; flex-shrink: 0; }
@@ -53,7 +51,6 @@
         .detour-section { background: rgba(0, 0, 0, 0.05); padding: 30px; border-radius: 10px; border: 2px solid var(--border); }
         .detour-value { font-size: 3rem; font-weight: 900; color: var(--warning); }
 
-        /* FEED SCORREVOLE */
         .feed-container { 
             padding: 25px; overflow-y: scroll; flex-grow: 1; 
             display: flex; flex-direction: column; gap: 20px; 
@@ -68,7 +65,6 @@
 
         .status-msg { display: flex; justify-content: center; align-items: center; height: 100%; font-size: 2.2rem; font-weight: 800; color: var(--success); text-align: center; }
 
-        /* LOGO CCISS - FISSO ESTERNO */
         .footer-logo { position: fixed; bottom: 25px; right: 25px; z-index: 1000; }
         .footer-logo img { max-height: 70px; width: auto; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5)); }
     </style>
@@ -109,7 +105,7 @@
                 <span id="sync-status" style="font-size: 0.9rem; opacity: 0.7;">CONNESSIONE...</span>
             </div>
             <div id="feed" class="feed-container">
-                <div id="main-status" class="status-msg">ATTENDERE RICEZIONE DATI...</div>
+                <div id="initial-loader" class="status-msg">ATTENDERE RICEZIONE DATI...</div>
             </div>
         </div>
     </main>
@@ -121,6 +117,8 @@
     <script>
         const CSV_LINK = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTQD7mYVjhrw9Ma3t_av071IGSDcaLoyojD55ZoOc-LuMIkT5OHWKwS93LQhVJCOGVHBJsG9Kyd2sXK/pub?output=csv';
         
+        let firstLoadDone = false;
+
         function updateClock() {
             const now = new Date();
             const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
@@ -159,12 +157,21 @@
                     
                     const data = await response.text();
                     const rows = parseCSV(data);
+                    
+                    // AGGIORNAMENTO SILENZIOSO:
+                    // Chiamiamo il rendering che sovrascrive i dati solo quando sono pronti
                     renderData(rows);
+                    
                     syncStatus.textContent = "LIVE - OK: " + new Date().toLocaleTimeString();
+                    firstLoadDone = true; // Segnala che il primo caricamento è andato
                     return; 
                 } catch (e) {
                     console.log("Proxy bypass...");
                 }
+            }
+            // Se fallisce e non abbiamo mai caricato nulla, mostriamo errore
+            if (!firstLoadDone) {
+                document.getElementById('feed').innerHTML = '<div class="status-msg" style="color:red;">ERRORE DI CONNESSIONE INIZIALE</div>';
             }
         }
 
@@ -174,7 +181,6 @@
             let count = 0;
 
             rows.forEach(cols => {
-                // Legge se Colonna A è compilata, riporta Colonna C
                 if (cols[0] && cols[0].trim().length > 1) {
                     const title = cols[0].trim();
                     const news = cols[2] ? cols[2].trim() : "";
@@ -188,13 +194,19 @@
                 }
             });
 
-            container.innerHTML = count > 0 ? html : '<div class="status-msg">✅ NESSUN EVENTO RILEVATO</div>';
+            // Se abbiamo dati nuovi, sostituiamo il contenuto del container in un colpo solo
+            if (count > 0) {
+                container.innerHTML = html;
+            } else if (!firstLoadDone) {
+                container.innerHTML = '<div class="status-msg">✅ NESSUN EVENTO RILEVATO</div>';
+            }
         }
 
         function startAutoScroll() {
             const container = document.getElementById('feed');
             setInterval(() => {
-                if (container.scrollHeight > container.clientHeight) {
+                // Scorri solo se ci sono notizie e non siamo nel loader iniziale
+                if (!document.getElementById('initial-loader') && container.scrollHeight > container.clientHeight) {
                     container.scrollTop += 1;
                     if (container.scrollTop + container.clientHeight >= container.scrollHeight - 1) {
                         setTimeout(() => { container.scrollTop = 0; }, 4000); 
@@ -204,7 +216,7 @@
         }
 
         fetchWithRetry();
-        setInterval(fetchWithRetry, 60000);
+        setInterval(fetchWithRetry, 60000); // Aggiorna ogni minuto in background
         startAutoScroll();
     </script>
 </body>
