@@ -153,7 +153,7 @@
         .item-title { color: var(--warning); font-weight: 900; font-size: 1.4rem; margin-bottom: 8px; text-transform: uppercase; }
         .item-desc { font-size: 1.2rem; line-height: 1.5; color: var(--text-bright); font-weight: 500; }
 
-        .status-msg { display: flex; justify-content: center; align-items: center; height: 100%; font-size: 1.5rem; font-weight: 800; color: var(--success); }
+        .status-msg { display: flex; justify-content: center; align-items: center; height: 100%; font-size: 1.5rem; font-weight: 800; color: var(--success); text-align: center; padding: 20px;}
     </style>
 </head>
 <body>
@@ -194,13 +194,17 @@
         <div class="panel">
             <div class="panel-header header-bollettino">PROVINCIA DI VARESE | A8 | A36 | LEGNANO | SS336</div>
             <div id="feed" class="feed-container">
-                <div class="status-msg">SINCRO DATI...</div>
+                <div class="status-msg">SINCRO DATI CCISS...</div>
             </div>
         </div>
     </main>
 
     <script>
-        const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTQD7mYVjhrw9Ma3t_av071IGSDcaLoyojD55ZoOc-LuMIkT5OHWKwS93LQhVJCOGVHBJsG9Kyd2sXK/pub?gid=0&single=true&output=csv';
+        // IL PONTE: Usa un servizio API che legge l'RSS del CCISS e ce lo passa sbloccato
+        const RSS_API_URL = 'https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Fwww.cciss.it%2Frss';
+
+        // FILTRI NECESSARI: Dato che l'RSS CCISS è nazionale, filtriamo solo le zone che ti interessano
+        const keywords = ["varese", "gallarate", "busto arsizio", "legnano", "saronno", "a8", "a36", "ss336", "malpensa", "pedemontana"];
 
         function updateClock() {
             const now = new Date();
@@ -211,31 +215,26 @@
         setInterval(updateClock, 1000); 
         updateClock();
 
-        function fastParseCSV(text) {
-            if (!text) return [];
-            const regex = /,(?=(?:(?:[^"]*"){2})*[^"]*$)/;
-            return text.split(/\r?\n/).map(line => line.split(regex).map(cell => cell ? cell.replace(/^"|"$/g, '').trim() : ''));
-        }
-
-        async function fetchFromSheets() {
+        async function fetchNotizieCCISS() {
             const container = document.getElementById('feed');
             try {
-                // Fetch diretto a Google Sheets (che supporta nativamente il CORS) - molto più stabile!
-                const response = await fetch(`${CSV_URL}&t=${Date.now()}`);
-                if (!response.ok) throw new Error("Network Error");
+                // Chiamiamo il ponte aggiungendo un parametro per forzare dati freschi
+                const response = await fetch(`${RSS_API_URL}&t=${Date.now()}`);
+                if (!response.ok) throw new Error("Errore di rete");
                 
-                const csvData = await response.text();
-                const rows = fastParseCSV(csvData);
+                const data = await response.json();
                 let contentHTML = "";
                 let count = 0;
 
-                // Saltiamo l'indice 0 che è l'intestazione di AppSheet
-                rows.forEach((cols, index) => {
-                    if (index > 0) {
-                        const title = cols[0] || ""; // Legge Colonna A sicura
-                        const desc = cols[2] || "";  // Legge Colonna C sicura, non crasha se vuota
-                        
-                        if (title.length > 0) {
+                // Controlla tutte le notizie ricevute dall'RSS
+                if(data.items && data.items.length > 0) {
+                    data.items.forEach(item => {
+                        const title = item.title || "";
+                        const desc = item.description || "";
+                        const fullText = (title + " " + desc).toLowerCase();
+
+                        // Controlla se il testo contiene almeno una delle parole chiave
+                        if (keywords.some(key => fullText.includes(key))) {
                             contentHTML += `
                                 <div class="feed-item">
                                     <div class="item-title">${title.toUpperCase()}</div>
@@ -243,18 +242,21 @@
                                 </div>`;
                             count++;
                         }
-                    }
-                });
+                    });
+                }
+
+                // Se trova notizie le stampa, altrimenti mostra messaggio di sicurezza
+                container.innerHTML = count > 0 ? contentHTML : '<div class="status-msg">✅ NESSUNA CRITICITÀ RILEVATA NELLA TUA ZONA</div>';
                 
-                container.innerHTML = count > 0 ? contentHTML : '<div class="status-msg">✅ NESSUNA NOTIZIA RILEVATA</div>';
             } catch (e) {
                 console.error("Errore di caricamento:", e);
-                container.innerHTML = '<div class="status-msg">⚠️ ERRORE CONNESSIONE DATI</div>';
+                container.innerHTML = '<div class="status-msg">⚠️ ERRORE RICEZIONE DATI DAL CCISS</div>';
             }
         }
 
-        fetchFromSheets();
-        setInterval(fetchFromSheets, 30000); // Aggiorna ogni 30 secondi
+        // Carica subito i dati e aggiorna ogni 60 secondi
+        fetchNotizieCCISS();
+        setInterval(fetchNotizieCCISS, 60000); 
     </script>
 </body>
 </html>
