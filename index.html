@@ -194,17 +194,25 @@
         <div class="panel">
             <div class="panel-header header-bollettino">PROVINCIA DI VARESE | A8 | A36 | LEGNANO | SS336</div>
             <div id="feed" class="feed-container">
-                <div class="status-msg">SINCRO DATI CCISS...</div>
+                <div class="status-msg">SINCRO DATI CCISS IN TEMPO REALE...</div>
             </div>
         </div>
     </main>
 
     <script>
-        // IL PONTE: Usa un servizio API che legge l'RSS del CCISS e ce lo passa sbloccato
-        const RSS_API_URL = 'https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Fwww.cciss.it%2Frss';
+        // RSS CCISS Ufficiale
+        const RSS_URL = 'https://www.cciss.it/rss';
+        
+        // Ponte API per aggirare il blocco senza ritardi di cache (AllOrigins ci restituisce l'XML puro in tempo reale)
+        const PROXY_URL = 'https://api.allorigins.win/get?url=';
 
-        // FILTRI NECESSARI: Dato che l'RSS CCISS è nazionale, filtriamo solo le zone che ti interessano
-        const keywords = ["varese", "gallarate", "busto arsizio", "legnano", "saronno", "a8", "a36", "ss336", "malpensa", "pedemontana"];
+        // Filtro ampliato a dismisura per prendere ogni dicitura possibile del CCISS
+        const keywords = [
+            "varese", "gallarate", "busto arsizio", "legnano", "saronno", 
+            "a8", "a08", "a 8", "milano-varese", "milano-laghi", "laghi",
+            "a36", "a 36", "pedemontana", 
+            "ss336", "ss 336", "malpensa"
+        ];
 
         function updateClock() {
             const now = new Date();
@@ -218,34 +226,42 @@
         async function fetchNotizieCCISS() {
             const container = document.getElementById('feed');
             try {
-                // Chiamiamo il ponte aggiungendo un parametro per forzare dati freschi
-                const response = await fetch(`${RSS_API_URL}&t=${Date.now()}`);
+                // Costruiamo l'URL forzando il bypass della cache tramite Date.now()
+                const targetUrl = encodeURIComponent(`${RSS_URL}?t=${Date.now()}`);
+                
+                // Fetch in tempo reale all'API AllOrigins
+                const response = await fetch(`${PROXY_URL}${targetUrl}`);
                 if (!response.ok) throw new Error("Errore di rete");
                 
                 const data = await response.json();
+                
+                // Leggiamo l'XML contenuto nella risposta
+                const parser = new DOMParser();
+                const xml = parser.parseFromString(data.contents, "text/xml");
+                const items = xml.querySelectorAll("item");
+
                 let contentHTML = "";
                 let count = 0;
 
-                // Controlla tutte le notizie ricevute dall'RSS
-                if(data.items && data.items.length > 0) {
-                    data.items.forEach(item => {
-                        const title = item.title || "";
-                        const desc = item.description || "";
-                        const fullText = (title + " " + desc).toLowerCase();
+                items.forEach(item => {
+                    const titleNode = item.querySelector("title");
+                    const descNode = item.querySelector("description");
+                    
+                    const title = titleNode ? titleNode.textContent : "";
+                    const desc = descNode ? descNode.textContent : "";
+                    const fullText = (title + " " + desc).toLowerCase();
 
-                        // Controlla se il testo contiene almeno una delle parole chiave
-                        if (keywords.some(key => fullText.includes(key))) {
-                            contentHTML += `
-                                <div class="feed-item">
-                                    <div class="item-title">${title.toUpperCase()}</div>
-                                    <div class="item-desc">${desc}</div>
-                                </div>`;
-                            count++;
-                        }
-                    });
-                }
+                    // Controllo contro le nostre parole chiave
+                    if (keywords.some(key => fullText.includes(key))) {
+                        contentHTML += `
+                            <div class="feed-item">
+                                <div class="item-title">${title.toUpperCase()}</div>
+                                <div class="item-desc">${desc}</div>
+                            </div>`;
+                        count++;
+                    }
+                });
 
-                // Se trova notizie le stampa, altrimenti mostra messaggio di sicurezza
                 container.innerHTML = count > 0 ? contentHTML : '<div class="status-msg">✅ NESSUNA CRITICITÀ RILEVATA NELLA TUA ZONA</div>';
                 
             } catch (e) {
@@ -254,7 +270,7 @@
             }
         }
 
-        // Carica subito i dati e aggiorna ogni 60 secondi
+        // Carica subito e aggiorna ogni 60 secondi
         fetchNotizieCCISS();
         setInterval(fetchNotizieCCISS, 60000); 
     </script>
