@@ -185,13 +185,20 @@ box-shadow:0 4px 18px rgba(0,0,0,0.4);
 animation:fadeIn 0.5s ease;
 }
 
+.feed-item.tomtom{
+border-left:12px solid var(--accent);
+}
+
 .item-title{
-color:var(--warning);
 font-weight:900;
 font-size:1.6rem;
 letter-spacing:1px;
 margin-bottom:6px;
 text-transform:uppercase;
+}
+
+.feed-item.tomtom .item-title{
+color:var(--accent);
 }
 
 .item-desc{
@@ -360,8 +367,8 @@ const desc=i.properties.events?.[0]?.description;
 if(desc){
 
 html+=`
-<div class="feed-item">
-<div class="item-title">TRAFFICO</div>
+<div class="feed-item tomtom">
+<div class="item-title">TRAFFICO TOMTOM</div>
 <div class="item-desc">${desc}</div>
 </div>`;
 
@@ -372,7 +379,7 @@ count++;
 });
 
 }catch(e){
-console.log("TomTom non disponibile");
+console.log("TomTom offline");
 }
 
 container.innerHTML=
