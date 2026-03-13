@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>INFO VIABILITÀ | logo.png</title>
+<title>INFO VIABILITÀ</title>
 
 <style>
 
@@ -178,6 +178,14 @@ border-radius:10px;
 padding:20px;
 }
 
+.item-title{
+color:var(--warning);
+font-weight:900;
+font-size:1.4rem;
+margin-bottom:8px;
+text-transform:uppercase;
+}
+
 .item-desc{
 font-size:1.2rem;
 line-height:1.5;
@@ -236,12 +244,10 @@ ENTRATA CHIUSA dalle ore
 <span class="highlight">21:00</span>
 del
 <span class="highlight">23/02/2026</span>
-
 alle ore
 <span class="highlight">05:00</span>
 del
 <span class="highlight">24/06/2026</span>
-
 in direzione MILANO.
 </div>
 </div>
@@ -324,6 +330,7 @@ if(colA!=="" && colC!==""){
 
 html+=`
 <div class="feed-item">
+<div class="item-title">${colA}</div>
 <div class="item-desc">${colC}</div>
 </div>
 `;
@@ -353,7 +360,6 @@ container.innerHTML=
 }
 
 fetchCSV();
-
 setInterval(fetchCSV,60000);
 
 </script>
