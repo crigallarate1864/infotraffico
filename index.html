@@ -201,7 +201,6 @@
 
     <script>
         const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTQD7mYVjhrw9Ma3t_av071IGSDcaLoyojD55ZoOc-LuMIkT5OHWKwS93LQhVJCOGVHBJsG9Kyd2sXK/pub?gid=0&single=true&output=csv';
-        const PROXY = "https://corsproxy.io/?";
 
         function updateClock() {
             const now = new Date();
@@ -213,25 +212,29 @@
         updateClock();
 
         function fastParseCSV(text) {
+            if (!text) return [];
             const regex = /,(?=(?:(?:[^"]*"){2})*[^"]*$)/;
-            return text.split(/\r?\n/).map(line => line.split(regex).map(cell => cell.replace(/^"|"$/g, '')));
+            return text.split(/\r?\n/).map(line => line.split(regex).map(cell => cell ? cell.replace(/^"|"$/g, '').trim() : ''));
         }
 
         async function fetchFromSheets() {
             const container = document.getElementById('feed');
             try {
-                const response = await fetch(`${PROXY}${encodeURIComponent(CSV_URL)}&t=${Date.now()}`);
+                // Fetch diretto a Google Sheets (che supporta nativamente il CORS) - molto più stabile!
+                const response = await fetch(`${CSV_URL}&t=${Date.now()}`);
+                if (!response.ok) throw new Error("Network Error");
+                
                 const csvData = await response.text();
                 const rows = fastParseCSV(csvData);
                 let contentHTML = "";
                 let count = 0;
 
-                rows.forEach(cols => {
-                    if (cols.length >= 3) {
-                        const title = cols[0].trim(); // Colonna A
-                        const desc = cols[2].trim();  // Colonna C
+                // Saltiamo l'indice 0 che è l'intestazione di AppSheet
+                rows.forEach((cols, index) => {
+                    if (index > 0) {
+                        const title = cols[0] || ""; // Legge Colonna A sicura
+                        const desc = cols[2] || "";  // Legge Colonna C sicura, non crasha se vuota
                         
-                        // Nessun filtro per parole chiave, solo controllo presenza dati
                         if (title.length > 0) {
                             contentHTML += `
                                 <div class="feed-item">
@@ -245,12 +248,13 @@
                 
                 container.innerHTML = count > 0 ? contentHTML : '<div class="status-msg">✅ NESSUNA NOTIZIA RILEVATA</div>';
             } catch (e) {
+                console.error("Errore di caricamento:", e);
                 container.innerHTML = '<div class="status-msg">⚠️ ERRORE CONNESSIONE DATI</div>';
             }
         }
 
         fetchFromSheets();
-        setInterval(fetchFromSheets, 30000);
+        setInterval(fetchFromSheets, 30000); // Aggiorna ogni 30 secondi
     </script>
 </body>
 </html>
