@@ -170,7 +170,7 @@ color:var(--accent);
 
 .feed-container{
 padding:20px;
-overflow-y:auto;
+overflow:hidden;
 display:flex;
 flex-direction:column;
 gap:16px;
@@ -321,22 +321,61 @@ now.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
 setInterval(updateClock,1000);
 updateClock();
 
+/* parser CSV corretto */
+
+function parseCSV(text){
+
+const rows=[];
+let current="";
+let insideQuotes=false;
+let row=[];
+
+for(let i=0;i<text.length;i++){
+
+const char=text[i];
+
+if(char=='"'){
+insideQuotes=!insideQuotes;
+continue;
+}
+
+if(char=="," && !insideQuotes){
+row.push(current);
+current="";
+continue;
+}
+
+if(char=="\n" && !insideQuotes){
+row.push(current);
+rows.push(row);
+row=[];
+current="";
+continue;
+}
+
+current+=char;
+
+}
+
+return rows;
+
+}
+
 async function fetchAll(){
 
 const container=document.getElementById("feed");
 
-try{
-
 let html="";
 let count=0;
 
+try{
+
 const csv=await fetch(CSV_URL+"&t="+Date.now());
 const text=await csv.text();
-const rows=text.split("\n");
 
-rows.forEach(row=>{
+const rows=parseCSV(text);
 
-const cols=row.split(",");
+rows.forEach(cols=>{
 
 const colA=cols[0]?cols[0].trim():"";
 const colC=cols[2]?cols[2].trim():"";
@@ -354,6 +393,10 @@ count++;
 }
 
 });
+
+}catch(e){
+console.log("Errore CSV");
+}
 
 try{
 
@@ -387,15 +430,29 @@ count>0
 ?html
 :'<div class="status-msg">✅ NESSUNA SEGNALAZIONE</div>';
 
-}
-
-catch(err){
-
-console.error(err);
-
-container.innerHTML='<div class="status-msg">⚠️ ERRORE LETTURA DATI</div>';
+startAutoScroll();
 
 }
+
+/* scroll automatico monitor */
+
+function startAutoScroll(){
+
+const el=document.getElementById("feed");
+
+let pos=0;
+
+setInterval(()=>{
+
+pos+=1;
+
+if(pos>=el.scrollHeight-el.clientHeight){
+pos=0;
+}
+
+el.scrollTop=pos;
+
+},80);
 
 }
 
