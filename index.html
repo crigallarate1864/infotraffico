@@ -169,6 +169,12 @@ overflow-y:auto;
 display:flex;
 flex-direction:column;
 gap:15px;
+/* Nascondo la barra di scorrimento laterale per un look più pulito, ma scorre lo stesso */
+scrollbar-width: none;
+-ms-overflow-style: none;
+}
+.feed-container::-webkit-scrollbar {
+display: none;
 }
 
 .feed-item{
@@ -329,10 +335,12 @@ let count=0;
 
 rows.forEach(row=>{
 
-const cols=row.split(",");
+// Nuova logica: ignora le virgole che si trovano dentro le virgolette
+const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
 
-const colA=cols[0]?cols[0].trim():"";
-const colC=cols[2]?cols[2].trim():"";
+// Rimuove eventuali doppie virgolette all'inizio e alla fine del testo
+const colA=cols[0]?cols[0].replace(/^"|"$/g, '').trim():"";
+const colC=cols[2]?cols[2].replace(/^"|"$/g, '').trim():"";
 
 if(colA!=="" && colC!==""){
 
@@ -369,6 +377,19 @@ container.innerHTML=
 
 fetchCSV();
 setInterval(fetchCSV,60000);
+
+// Logica per l'autoscroll fluido del pannello notizie
+setInterval(() => {
+    const feed = document.getElementById("feed");
+    // Se le notizie superano l'altezza del pannello, scorre di 1 pixel
+    if (feed.scrollHeight > feed.clientHeight) {
+        feed.scrollTop += 1;
+        // Quando arriva in fondo (o quasi), riporta la barra all'inizio
+        if (Math.ceil(feed.scrollTop) + feed.clientHeight >= feed.scrollHeight) {
+            feed.scrollTop = 0;
+        }
+    }
+}, 50); // 50 millisecondi di intervallo rendono lo scorrimento fluido
 
 </script>
 
