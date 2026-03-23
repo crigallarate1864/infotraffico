@@ -169,7 +169,6 @@ overflow-y:auto;
 display:flex;
 flex-direction:column;
 gap:15px;
-/* Nascondo la barra di scorrimento laterale per un look più pulito, ma scorre lo stesso */
 scrollbar-width: none;
 -ms-overflow-style: none;
 }
@@ -208,6 +207,62 @@ font-weight:800;
 color:var(--success);
 text-align:center;
 padding:20px;
+}
+
+/* ==================================================== */
+/* ADATTAMENTO SMARTPHONE (MOBILE FRIENDLY) */
+/* ==================================================== */
+@media (max-width: 900px) {
+    body {
+        height: auto; /* Permette lo scroll naturale della pagina */
+        overflow: auto;
+    }
+
+    header {
+        grid-template-columns: 1fr; /* Mette tutto in colonna */
+        text-align: center;
+        gap: 15px;
+        padding: 20px 15px;
+    }
+
+    .header-center {
+        grid-column: 1;
+        justify-content: center;
+        flex-direction: column-reverse; /* Logo sopra, titolo sotto */
+        gap: 10px;
+    }
+
+    .separator { display: none; } /* Nasconde la barra verticale */
+
+    .header-right {
+        grid-column: 1;
+        text-align: center;
+    }
+
+    .header-center h1 { font-size: 1.8rem; }
+    #clock { font-size: 3rem; }
+
+    main {
+        grid-template-columns: 1fr; /* I due blocchi si mettono uno sopra l'altro */
+        height: auto;
+        overflow: visible;
+        padding: 10px;
+    }
+
+    .panel {
+        margin-bottom: 20px;
+    }
+
+    .alert-box .title { font-size: 1.6rem; }
+    .alert-box .body-text { font-size: 1.1rem; }
+    .detour-value { font-size: 1.8rem; }
+    
+    .feed-container {
+        max-height: 500px; /* Limita l'altezza su mobile per permettere l'autoscroll */
+    }
+
+    .item-title { font-size: 1.2rem; }
+    .item-desc { font-size: 1.1rem; }
 }
 
 </style>
@@ -254,7 +309,7 @@ alle ore
 <span class="highlight">05:00</span>
 del
 <span class="highlight">24/06/2026</span>
-in direzione MILANO
+in direzione MILANO.
 <br><br>
 Entrata consigliata verso Milano: <span class="highlight">BUSTO ARSIZIO</span>
 </div>
@@ -272,7 +327,7 @@ alle ore
 <span class="highlight">06:00</span> 
 del 
 <span class="highlight">21/03/2026</span> 
-a Allacciamento A8 Cassano Magnago in direzione VARESE
+a Allacciamento A8 Cassano - Magnago in direzione VARESE.
 </div>
 </div>
 
@@ -335,10 +390,8 @@ let count=0;
 
 rows.forEach(row=>{
 
-// Nuova logica: ignora le virgole che si trovano dentro le virgolette
 const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
 
-// Rimuove eventuali doppie virgolette all'inizio e alla fine del testo
 const colA=cols[0]?cols[0].replace(/^"|"$/g, '').trim():"";
 const colC=cols[2]?cols[2].replace(/^"|"$/g, '').trim():"";
 
@@ -378,18 +431,15 @@ container.innerHTML=
 fetchCSV();
 setInterval(fetchCSV,60000);
 
-// Logica per l'autoscroll fluido del pannello notizie
 setInterval(() => {
     const feed = document.getElementById("feed");
-    // Se le notizie superano l'altezza del pannello, scorre di 1 pixel
     if (feed.scrollHeight > feed.clientHeight) {
         feed.scrollTop += 1;
-        // Quando arriva in fondo (o quasi), riporta la barra all'inizio
         if (Math.ceil(feed.scrollTop) + feed.clientHeight >= feed.scrollHeight) {
             feed.scrollTop = 0;
         }
     }
-}, 50); // 50 millisecondi di intervallo rendono lo scorrimento fluido
+}, 50);
 
 </script>
 
