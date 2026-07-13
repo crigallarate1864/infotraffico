@@ -119,8 +119,15 @@
             display: flex;
             flex-direction: column;
             flex-grow: 1;
-            justify-content: center; /* Aggiunto per centrare eventuali messaggi di stato */
+            justify-content: center;
             gap: 20px;
+            overflow-y: auto; /* Aggiunto per permettere lo scorrimento di avvisi multipli */
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        
+        .fixed-content::-webkit-scrollbar {
+            display: none;
         }
 
         .alert-box {
@@ -128,6 +135,7 @@
             background: rgba(244, 63, 94, 0.1);
             border-radius: 15px;
             border-left: 8px solid var(--danger);
+            flex-shrink: 0;
         }
 
         .alert-box .title {
@@ -135,6 +143,7 @@
             font-size: 2.2rem;
             font-weight: 900;
             margin-bottom: 10px;
+            text-transform: uppercase;
         }
 
         .alert-box .body-text {
@@ -213,6 +222,7 @@
             color: var(--success);
             text-align: center;
             padding: 20px;
+            flex-shrink: 0;
         }
 
         /* ==================================================== */
@@ -263,7 +273,7 @@
             .alert-box .body-text { font-size: 1.1rem; }
             .detour-value { font-size: 1.8rem; }
             
-            .feed-container {
+            .feed-container, .fixed-content {
                 max-height: 500px;
             }
 
@@ -296,10 +306,9 @@
             <div class="panel-header header-permanente">
                 Segnalazione Permanente
             </div>
-            <div class="fixed-content">
-                <!-- Avviso Gallarate rimosso, sostituito con placeholder di stato -->
+            <div id="permanent-feed" class="fixed-content">
                 <div class="status-msg">
-                    ✅ NESSUNA SEGNALAZIONE IN CORSO
+                    ATTENDERE...
                 </div>
             </div>
         </div>
@@ -320,6 +329,112 @@
     <script>
         const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTQD7mYVjhrw9Ma3t_av071IGSDcaLoyojD55ZoOc-LuMIkT5OHWKwS93LQhVJCOGVHBJsG9Kyd2sXK/pub?output=csv";
 
+        // ==========================================
+        // DATABASE CHIUSURE PROGRAMMATE
+        // Si attivano alla mezzanotte del giorno di inizio
+        // e scadono alle 05:00 del mattino del giorno di fine
+        // ==========================================
+        const programmedAlerts = [
+            { // 13-14 Luglio
+                start: new Date(2026, 6, 13, 0, 0), end: new Date(2026, 6, 14, 5, 0),
+                title: "A8 LEGNANO", period: "Notte tra 13 e 14 Luglio", hours: "21:00 - 05:00",
+                desc: "Entrata chiusa in direzione Milano.",
+                detour: "Ingresso consigliato: <span class='highlight'>Castellanza</span>"
+            },
+            { // 14-15 Luglio (Cavaria)
+                start: new Date(2026, 6, 14, 0, 0), end: new Date(2026, 6, 15, 5, 0),
+                title: "A8 CAVARIA", period: "Notte tra 14 e 15 Luglio", hours: "21:00 - 05:00",
+                desc: "Entrata chiusa in entrambe le direzioni.",
+                detour: "Verso Milano: <span class='highlight'>Gallarate</span><br>Verso Varese: <span class='highlight'>Solbiate Arno - Albizzate</span>"
+            },
+            { // 14-15 Luglio (Legnano)
+                start: new Date(2026, 6, 14, 0, 0), end: new Date(2026, 6, 15, 5, 0),
+                title: "A8 LEGNANO", period: "Notte tra 14 e 15 Luglio", hours: "21:00 - 05:00",
+                desc: "Entrata chiusa in direzione Milano.",
+                detour: "Ingresso consigliato: <span class='highlight'>Castellanza</span>"
+            },
+            { // 15-16 Luglio (Cavaria)
+                start: new Date(2026, 6, 15, 0, 0), end: new Date(2026, 6, 16, 5, 0),
+                title: "A8 CAVARIA", period: "Notte tra 15 e 16 Luglio", hours: "21:00 - 05:00",
+                desc: "Entrata chiusa in entrambe le direzioni.",
+                detour: "Verso Milano: <span class='highlight'>Gallarate</span><br>Verso Varese: <span class='highlight'>Solbiate Arno - Albizzate</span>"
+            },
+            { // 15-16 Luglio (Castellanza)
+                start: new Date(2026, 6, 15, 0, 0), end: new Date(2026, 6, 16, 5, 0),
+                title: "A8 CASTELLANZA", period: "Notte tra 15 e 16 Luglio", hours: "21:00 - 05:00",
+                desc: "Entrata chiusa in direzione Milano.",
+                detour: "Ingresso consigliato: <span class='highlight'>Legnano</span>"
+            },
+            { // 16-17 Luglio (Cavaria)
+                start: new Date(2026, 6, 16, 0, 0), end: new Date(2026, 6, 17, 5, 0),
+                title: "A8 CAVARIA", period: "Notte tra 16 e 17 Luglio", hours: "21:00 - 05:00",
+                desc: "Entrata chiusa in entrambe le direzioni.",
+                detour: "Verso Milano: <span class='highlight'>Gallarate</span><br>Verso Varese: <span class='highlight'>Varese</span>"
+            },
+            { // 16-17 Luglio (Castellanza)
+                start: new Date(2026, 6, 16, 0, 0), end: new Date(2026, 6, 17, 5, 0),
+                title: "A8 CASTELLANZA", period: "Notte tra 16 e 17 Luglio", hours: "21:00 - 05:00",
+                desc: "Entrata chiusa in direzione Milano.",
+                detour: "Ingresso consigliato: <span class='highlight'>Legnano</span>"
+            },
+            { // 16-17 Luglio (Legnano)
+                start: new Date(2026, 6, 16, 0, 0), end: new Date(2026, 6, 17, 5, 0),
+                title: "A8 LEGNANO", period: "Notte tra 16 e 17 Luglio", hours: "21:00 - 05:00",
+                desc: "Uscita chiusa in entrambe le direzioni.",
+                detour: "Uscita cons.: <span class='highlight'>Castellanza</span> (da MI e VA)"
+            },
+            { // 17-18 Luglio
+                start: new Date(2026, 6, 17, 0, 0), end: new Date(2026, 6, 18, 5, 0),
+                title: "A8 CASTELLANZA", period: "Notte tra 17 e 18 Luglio", hours: "21:00 - 05:00",
+                desc: "Entrata chiusa in direzione Milano.",
+                detour: "Ingresso consigliato: <span class='highlight'>Legnano</span>"
+            },
+            { // 18-19 Luglio
+                start: new Date(2026, 6, 18, 0, 0), end: new Date(2026, 6, 19, 5, 0),
+                title: "A8 CAVARIA", period: "Notte tra 18 e 19 Luglio", hours: "22:00 - 05:00",
+                desc: "Entrata chiusa in entrambe le direzioni.",
+                detour: "Verso Milano: <span class='highlight'>Gallarate</span><br>Verso Varese: <span class='highlight'>Castronno</span>"
+            },
+            { // 19-20 Luglio
+                start: new Date(2026, 6, 19, 0, 0), end: new Date(2026, 6, 20, 5, 0),
+                title: "A8 CAVARIA", period: "Notte tra 19 e 20 Luglio", hours: "22:00 - 05:00",
+                desc: "Entrata chiusa in entrambe le direzioni.",
+                detour: "Verso Milano: <span class='highlight'>Gallarate</span><br>Verso Varese: <span class='highlight'>Solbiate Arno - Albizzate</span>"
+            }
+        ];
+
+        function updatePermanentAlerts() {
+            const container = document.getElementById("permanent-feed");
+            const now = new Date();
+            let html = "";
+            let count = 0;
+
+            programmedAlerts.forEach(alert => {
+                // Se la data di oggi rientra tra l'inizio e la fine dell'evento
+                if (now >= alert.start && now <= alert.end) {
+                    html += `
+                    <div class="alert-box">
+                        <div class="title">${alert.title}</div>
+                        <div class="body-text">
+                            <span class="highlight" style="font-size: 1rem;">${alert.period} (${alert.hours})</span><br><br>
+                            ${alert.desc}<br><br>
+                            <span style="font-size: 1.1rem">${alert.detour}</span>
+                        </div>
+                    </div>
+                    `;
+                    count++;
+                }
+            });
+
+            container.innerHTML = count > 0 
+                ? html 
+                : '<div class="status-msg">✅ NESSUNA CHIUSURA PROGRAMMATA</div>';
+            
+            // Imposta flex-start se ci sono avvisi per farli scorrere correttamente, 
+            // altrimenti center per il messaggio NESSUNA CHIUSURA
+            container.style.justifyContent = count > 0 ? "flex-start" : "center";
+        }
+
         function updateClock() {
             const now = new Date();
 
@@ -332,6 +447,9 @@
 
             document.getElementById('date-box').textContent = now.toLocaleDateString('it-IT', optionsDate);
             document.getElementById('clock').textContent = now.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+            
+            // Controllo validità alert permanente ogni volta che scatta il clock (ogni secondo)
+            updatePermanentAlerts(); 
         }
 
         setInterval(updateClock, 1000);
@@ -349,7 +467,6 @@
                 let count = 0;
 
                 rows.forEach(row => {
-                    // Regex robusta per supportare celle con virgole racchiuse tra virgolette
                     const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
 
                     const colA = cols[0] ? cols[0].replace(/^"|"$/g, '').trim() : "";
@@ -379,16 +496,21 @@
         fetchCSV();
         setInterval(fetchCSV, 60000);
 
-        // Autoscroll del feed
-        setInterval(() => {
-            const feed = document.getElementById("feed");
-            if (feed.scrollHeight > feed.clientHeight) {
-                feed.scrollTop += 1;
-                // Se arriva in fondo, ricomincia da capo
-                if (Math.ceil(feed.scrollTop) + feed.clientHeight >= feed.scrollHeight) {
-                    feed.scrollTop = 0;
+        // Funzione per autoscroll di un contenitore specifico
+        function autoScroll(elementId) {
+            const el = document.getElementById(elementId);
+            if (el && el.scrollHeight > el.clientHeight) {
+                el.scrollTop += 1;
+                if (Math.ceil(el.scrollTop) + el.clientHeight >= el.scrollHeight) {
+                    el.scrollTop = 0;
                 }
             }
+        }
+
+        // Applica l'autoscroll sia al feed bollettino che agli avvisi permanenti
+        setInterval(() => {
+            autoScroll("feed");
+            autoScroll("permanent-feed");
         }, 50);
     </script>
 
